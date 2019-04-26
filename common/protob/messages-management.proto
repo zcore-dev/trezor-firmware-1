@@ -191,6 +191,7 @@ message ResetDevice {
     optional uint32 u2f_counter = 7;                    // U2F counter
     optional bool skip_backup = 8;                      // postpone seed backup to BackupDevice workflow
     optional bool no_backup = 9;                        // indicate that no backup is going to be made
+    optional bool slip39 = 10;                          // indicate that we want SLIP-39 backup not BIP-39
 }
 
 /**
@@ -246,6 +247,14 @@ message RecoveryDevice {
         RecoveryDeviceType_ScrambledWords = 0;        // words in scrambled order
         RecoveryDeviceType_Matrix = 1;                // matrix recovery type
     }
+}
+
+/**
+ * Response: If recovery is a multi-step process, this message is returned
+ * after non-final mnemonic is set.
+ * @end
+ */
+message RecoveryDeviceInProgress {
 }
 
 /**
