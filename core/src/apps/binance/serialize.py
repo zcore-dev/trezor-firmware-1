@@ -78,11 +78,6 @@ def encode(envelope: BinanceSignTx, msg, signature, pubkey):
     final_array[0:0] = bytearray([len(final_array)])
     final_array[1:1] = unhexlify("01")
 
-    # TODO: looks like they are expecting json?
-    signed_tx = BinanceSignedTx(
-        signature=signature, public_key=pubkey, json=hexlify(final_array)
-    )
-
     return final_array
 
 

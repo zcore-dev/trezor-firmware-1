@@ -9,6 +9,7 @@ from trezor.messages.BinanceSignTx import BinanceSignTx
 from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
 from apps.binance import CURVE, helpers, layout
+from apps.binance.serialize import encode
 from apps.common import paths
 
 
@@ -23,6 +24,7 @@ async def sign_tx(ctx, envelope: BinanceSignTx, msg, keychain):
 
     msg_json = helpers.produce_json_for_signing(envelope, msg)
     signature_bytes = generate_content_signature(msg_json.encode(), node.private_key())
+    encoded_message = encode(envelope, msg, signature_bytes, node.public_key())
 
     # TODO: what to validate/confirm with various messages?
     if isinstance(msg, BinanceTransferMsg):
@@ -37,7 +39,7 @@ async def sign_tx(ctx, envelope: BinanceSignTx, msg, keychain):
     else:
         raise ValueError("input message unrecognized, is of type " + type(msg).__name__)
 
-    return BinanceSignedTx(signature_bytes, node.public_key(), msg_json)
+    return BinanceSignedTx(signature_bytes, node.public_key(), encoded_message)
 
 
 def generate_content_signature(json: bytes, private_key: bytes) -> bytes:
