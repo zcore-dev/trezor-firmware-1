@@ -1,9 +1,9 @@
 from micropython import const
 
+from apps.monero.xmr.serialize import int_serialize
 from trezor.crypto import bech32
 from trezor.crypto.hashlib import ripemd160, sha256
 from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
-
 from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
 from trezor.messages.BinanceSignTx import BinanceSignTx
 from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
@@ -98,15 +98,10 @@ def encode_binary_address(bech32address):
     decoded_address = bech32.bech32_decode(bech32address)
     bits = bech32.convertbits(decoded_address[1], 5, 8)
     return bytearray(bits)
-    # if decoded_address[0] == "bnb" or decoded_address[0] == "tbnb":
-    #     return bytearray(bech32.convertbits(decoded_address[1], 5, 8))
-    # else:
-    #     raise ValueError("not a binance address, HRP is "+decoded_address[0])
 
 
-def binary_to_bech(binarybech):
-    bits = bech32.convertbits(binarybech, 8, 5, False)
-    return bech32.bech32_encode("tbnb", bits)
+def encode_binary_amount(amount):
+    return int_serialize.dump_uvarint_b(amount)  # TODO: using varint from monero, move to binance app?
 
 
 def validate_full_path(path: list) -> bool:

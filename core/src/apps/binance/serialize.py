@@ -4,17 +4,14 @@
 # https://binance-chain.github.io/encoding.html#binance-chain-transaction-encoding-specification
 #
 
-from ubinascii import hexlify, unhexlify
+from ubinascii import unhexlify
 
 from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
 from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
-from trezor.messages.BinanceSignedTx import BinanceSignedTx
 from trezor.messages.BinanceSignTx import BinanceSignTx
 from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
-from .helpers import encode_binary_address
-
-from apps.monero.xmr.serialize import int_serialize
+from .helpers import encode_binary_address, encode_binary_amount
 
 # message prefixes
 STANDARD_TX_PREFIX = unhexlify("F0625DEE")
@@ -119,10 +116,10 @@ def encode_order_msg(msg: BinanceOrderMsg):
     message_array.append(msg.side)
 
     message_array.append(NEWORDER_PRICE_KEY_PREFIX)
-    message_array.extend(int_serialize.dump_uvarint_b(msg.price))
+    message_array.extend(encode_binary_amount(msg.price))
 
     message_array.append(NEWORDER_QUANTITY_KEY_PREFIX)
-    message_array.extend(int_serialize.dump_uvarint_b(msg.quantity))
+    message_array.extend(encode_binary_amount(msg.quantity))
 
     message_array.append(NEWORDER_TIMEINFORCE_KEY_PREFIX)
     message_array.append(msg.timeinforce)
@@ -190,7 +187,7 @@ def encode_transfer_msg(msg: BinanceTransferMsg):
     inputs.extend(msg.inputs[0].coins[0].denom)
     inputs.append(SEND_AMOUNT_KEY_PREFIX)
     inputs.extend(calculate_varint(len(msg.inputs[0].coins[0].amount)))
-    inputs.extend(msg.inputs[0].coins[0].amount)
+    inputs.extend(encode_binary_amount(msg.inputs[0].coins[0].amount))
 
     w.extend(calculate_varint(len(inputs)))
     w.extend(inputs)
@@ -206,7 +203,7 @@ def encode_transfer_msg(msg: BinanceTransferMsg):
     outputs.extend(msg.outputs[0].coins[0].denom)
     outputs.append(SEND_AMOUNT_KEY_PREFIX)
     outputs.extend(calculate_varint(len(msg.outputs[0].coins[0].amount)))
-    outputs.extend(msg.outputs[0].coins[0].amount)
+    outputs.extend(encode_binary_amount(msg.outputs[0].coins[0].amount))
 
     w.extend(calculate_varint(len(outputs)))
     w.extend(outputs)
