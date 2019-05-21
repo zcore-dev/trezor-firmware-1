@@ -2,20 +2,23 @@ from micropython import const
 
 from trezor.crypto import bech32
 from trezor.crypto.hashlib import ripemd160, sha256
-from trezor.messages.BinanceInputOutput import BinanceInputOutput
-from trezor.messages.BinanceCoin import BinanceCoin
-from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
-from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
 from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
+
+from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
 from trezor.messages.BinanceSignTx import BinanceSignTx
+from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
 from apps.common import HARDENED
 
+ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}"}}'
+ENVELOPE_BLUEPRINT_WITH_SOURCE = '{{"account_number":"{account_number}","chain_id":"{chain_id}","memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}","source":"{source}"}}'
+MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{{"address":"{input_address}","coins":[{{"amount":{input_amount},"denom":"{input_denom}"}}]}}],"outputs":[{{"address":"{output_address}","coins":[{{"amount":{output_amount},"denom":"{output_denom}"}}]}}]}}'
+MSG_NEWORDER_BLUEPRINT = '{{"id":"{id}","ordertype":{ordertype},"price":{price},"quantity":{quantity},"sender":"{sender}","side":{side},"symbol":"{symbol}","timeinforce":{timeinforce}}}'
+MSG_CANCEL_BLUEPRINT = '{{"refid":"{refid}","sender":"{sender}","symbol":"{symbol}}}'
 
-_ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}"}}'
-_MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{{"address":"{input_address}","coins":[{{"amount":{input_amount},"denom":"{input_denom}"}}]}}],"outputs":[{{"address":"{output_address}","coins":[{{"amount":{output_amount},"denom":"{output_denom}"}}]}}]}}'
-_MSG_NEWORDER_BLUEPRINT = '{{"id":"{id}","ordertype":{ordertype},"price":{price},"quantity":{quantity},"sender":"{sender}","side":{side},"symbol":"{symbol}","timeinforce":{timeinforce}}}'
-_MSG_CANCEL_BLUEPRINT = '{{"refid":"{refid}","sender":"{sender}","symbol":"{symbol}}}'
+DIVISIBILITY = const(
+    18
+)  # 1*10^18 Jagers equal 1 BNB https://www.binance.vision/glossary/jager
 
 
 def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
@@ -26,31 +29,61 @@ def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
     elif isinstance(msg, BinanceCancelMsg):
         jsonmsg = produce_cancel_json(msg)
     else:
-        raise ValueError('input message unrecognized, is of type '+type(msg).__name__)
+        raise ValueError("input message unrecognized, is of type " + type(msg).__name__)
 
-    return _ENVELOPE_BLUEPRINT.format(account_number=envelope.account_number, chain_id=envelope.chain_id, memo=envelope.memo, msgs=jsonmsg, sequence=envelope.sequence)
+    if envelope.source is None or envelope.source <= 0:
+        source = 0
+    else:
+        source = envelope.source
+
+    return ENVELOPE_BLUEPRINT.format(
+        account_number=envelope.account_number,
+        chain_id=envelope.chain_id,
+        memo=envelope.memo,
+        msgs=jsonmsg,
+        sequence=envelope.sequence
+    )
+
 
 def produce_transfer_json(msg: BinanceTransferMsg) -> str:
     firstinput = next(iter(msg.inputs.coins))
     firstoutput = next(iter(msg.outputs.coins))
 
-    return _MSG_TRANSFER_BLUEPRINT.format(input_address=msg.inputs.address, input_amount=firstinput.amount, input_denom=firstinput.denom,
-                                          output_address=msg.outputs.address, output_amount=firstoutput.amount, output_denom=firstoutput.denom)
+    return MSG_TRANSFER_BLUEPRINT.format(
+        input_address=msg.inputs.address,
+        input_amount=firstinput.amount,
+        input_denom=firstinput.denom,
+        output_address=msg.outputs.address,
+        output_amount=firstoutput.amount,
+        output_denom=firstoutput.denom,
+    )
 
 
 def produce_neworder_json(msg: BinanceOrderMsg) -> str:
-    return _MSG_NEWORDER_BLUEPRINT.format(id=msg.id, ordertype=msg.ordertype, price=msg.price, quantity=msg.quantity, 
-                                          sender=msg.sender, side=msg.side, symbol=msg.symbol, timeinforce=msg.timeinforce)
+    return MSG_NEWORDER_BLUEPRINT.format(
+        id=msg.id,
+        ordertype=msg.ordertype,
+        price=msg.price,
+        quantity=msg.quantity,
+        sender=msg.sender,
+        side=msg.side,
+        symbol=msg.symbol,
+        timeinforce=msg.timeinforce,
+    )
 
 
 def produce_cancel_json(msg: BinanceCancelMsg) -> str:
-    return _MSG_CANCEL_BLUEPRINT.format(refid=msg.refid, sender=msg.sender, symbol=msg.symbol)
+    return MSG_CANCEL_BLUEPRINT.format(
+        refid=msg.refid, sender=msg.sender, symbol=msg.symbol
+    )
 
 
-def address_from_public_key(pubkey: bytes) -> str:
-    # Address = RIPEMD160(SHA256(compressed public key))
-    # Address_Bech32 = HRP + '1' + bech32.encode(convert8BitsTo5Bits(RIPEMD160(SHA256(compressed public key))))
-    # HRP - bnb for productions, tbnb for tests
+def address_from_public_key(pubkey: bytes, hrp: str) -> str:
+    """
+    Address = RIPEMD160(SHA256(compressed public key))
+    Address_Bech32 = HRP + '1' + bech32.encode(convert8BitsTo5Bits(RIPEMD160(SHA256(compressed public key))))
+    HRP - bnb for productions, tbnb for tests
+    """
 
     h = sha256(pubkey).digest()
     h = ripemd160(h).digest()
@@ -58,7 +91,23 @@ def address_from_public_key(pubkey: bytes) -> str:
     convertedbits = bech32.convertbits(h, 8, 5, False)
 
     # TODO: handle testnet vs mainnet
-    return bech32.bech32_encode("tbnb", convertedbits)
+    return bech32.bech32_encode(hrp, convertedbits)
+
+
+def encode_binary_address(bech32address):
+    decoded_address = bech32.bech32_decode(bech32address)
+    bits = bech32.convertbits(decoded_address[1], 5, 8)
+    return bytearray(bits)
+    # if decoded_address[0] == "bnb" or decoded_address[0] == "tbnb":
+    #     return bytearray(bech32.convertbits(decoded_address[1], 5, 8))
+    # else:
+    #     raise ValueError("not a binance address, HRP is "+decoded_address[0])
+
+
+def binary_to_bech(binarybech):
+    bits = bech32.convertbits(binarybech, 8, 5, False)
+    return bech32.bech32_encode("tbnb", bits)
+
 
 def validate_full_path(path: list) -> bool:
     """

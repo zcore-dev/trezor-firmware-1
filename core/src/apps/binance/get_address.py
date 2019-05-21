@@ -1,9 +1,9 @@
 from trezor.messages.BinanceAddress import BinanceAddress
 from trezor.messages.BinanceGetAddress import BinanceGetAddress
 
+from apps.binance import CURVE, helpers
 from apps.common import paths
 from apps.common.layout import address_n_to_str, show_address, show_qr
-from apps.binance import CURVE, helpers
 
 
 async def get_address(ctx, msg: BinanceGetAddress, keychain):
@@ -24,4 +24,3 @@ async def get_address(ctx, msg: BinanceGetAddress, keychain):
                 break
 
     return BinanceAddress(address=address)
-    

@@ -25,6 +25,7 @@ import json
 import os
 import re
 import sys
+from binascii import hexlify
 from decimal import Decimal
 
 import click
@@ -1994,7 +1995,20 @@ def ontology_sign_ont_id_add_attributes(
 def binance_get_address(connect, address, show_display):
     client = connect()
     address_n = tools.parse_path(address)
+
     return binance.get_address(client, address_n, show_display)
+
+@cli.command(help="Get Binance public key.")
+@click.option(
+    "-n", "--address", required=True, help="BIP-32 path to key, e.g. m/44'/714'/0'/0/0"
+)
+@click.option("-d", "--show-display", is_flag=True)
+@click.pass_obj
+def binance_get_public_key(connect, address, show_display):
+    client = connect()
+    address_n = tools.parse_path(address)
+
+    return hexlify(binance.get_public_key(client, address_n, show_display))
 
 @cli.command(help="Sign Binance transaction")
 @click.option(

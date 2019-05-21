@@ -12,7 +12,7 @@ class TestBinanceAddress(unittest.TestCase):
         expectedresult = "tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd"
 
         pubkey = secp256k1.publickey(unhexlify(privkey), True)
-        address = address_from_public_key(pubkey)
+        address = address_from_public_key(pubkey, "tbnb")
 
         self.assertEqual(address, expectedresult)
 
