@@ -9,13 +9,13 @@ from apps.binance.sign_tx import generate_content_signature, verify_content_sign
 from apps.binance.serialize import encode_std_signature, encode_order_msg, encode
 
 class TestBinanceSerialze(unittest.TestCase):
-    def testEncodeAddressToBinary(self):
+    def test_encode_address_to_binary(self):
         bech32_address = "tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd"
         encoded_address = unhexlify("BA36F0FAD74D8F41045463E4774F328F4AF779E5")
 
         self.assertEqual(encode_binary_address(bech32_address), encoded_address)
 
-    def testEncodeToBinary(self):
+    def test_encode_to_binary(self):
         #source of testing data https://github.com/binance-chain/javascript-sdk/blob/master/__tests__/encoder.test.js#L64
         pubkey_hex = "03baf53d1424f8ea83d03a82f6d157b5401c4ea57ffb8317872e15a19fc9b7ad7b"
         signature_hex = "e79a6606d28cf07b9cc6f566b524a5282b13beccc3162376c79f392620c95a447b19f64e761e22a7a3bc311a780e7d9fdd521e2f7edec25308c5bac6aa1c0a31"
@@ -33,7 +33,6 @@ class TestBinanceSerialze(unittest.TestCase):
 
         encoded = encode(envelope, msg, unhexlify(signature_hex), unhexlify(pubkey_hex))
         self.assertEqual(hexlify(encoded), expected_encoded_msg.encode())
-    
 
 if __name__ == '__main__':
     unittest.main()
