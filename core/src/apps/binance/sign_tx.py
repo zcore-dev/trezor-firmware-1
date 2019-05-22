@@ -44,9 +44,13 @@ async def sign_tx(ctx, envelope: BinanceSignTx, msg, keychain):
 
 def generate_content_signature(json: bytes, private_key: bytes) -> bytes:
     msghash = sha256(json).digest()
-    return secp256k1.sign(private_key, msghash)[1:65]  # TODO: FIGURE OUT WHY THE EXTRA FIRST BYTE!
+    return secp256k1.sign(private_key, msghash)[
+        1:65
+    ]  # TODO: FIGURE OUT WHY THE EXTRA FIRST BYTE!
 
 
-def verify_content_signature(public_key: bytes, signature: bytes, unsigned_data: bytes) -> bool:
+def verify_content_signature(
+    public_key: bytes, signature: bytes, unsigned_data: bytes
+) -> bool:
     msghash = sha256(unsigned_data).digest()
     return secp256k1.verify(public_key, signature, msghash)

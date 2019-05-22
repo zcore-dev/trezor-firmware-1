@@ -72,6 +72,10 @@ def encode(envelope: BinanceSignTx, msg, signature, pubkey):
         final_array.extend(calculate_varint(len(envelope.memo)))
         final_array.extend(envelope.memo)
 
+    # if envelope.source is not None:
+    final_array.append(0x20)
+    final_array.append(envelope.source)
+
     final_array[0:0] = bytearray([len(final_array)])
     final_array[1:1] = unhexlify("01")
 
@@ -159,22 +163,30 @@ def encode_std_signature(msg: BinanceSignTx, signature, pubkey):
 
 def encode_cancel_msg(msg: BinanceCancelMsg):
     w = bytearray()
-    w.append(CANCEL_ORDER_MSG_PREFIX)
+    w.extend(CANCEL_ORDER_MSG_PREFIX)
     w.append(CANCEL_SENDER_KEY_PREFIX)
-    w.append(encode_binary_address(msg.sender))
+    sender = encode_binary_address(msg.sender)
+    w.extend(calculate_varint(len(sender)))
+    w.extend(sender)
     w.append(CANCEL_SYMBOL_KEY_PREFIX)
     w.extend(calculate_varint(len(msg.symbol)))
     w.extend(msg.symbol)
-    w.extend(CANCEL_REFID_KEY_PREFIX)
+    w.append(CANCEL_REFID_KEY_PREFIX)
     w.extend(calculate_varint(len(msg.refid)))
     w.extend(msg.refid)
+
+    array_length = calculate_varint(len(w))
+
+    w[0:0] = STANDARD_TX_PREFIX
+    w[4:4] = unhexlify("0A")  # TODO: replace with const
+    w[5:5] = array_length
+
     return w
 
 
 def encode_transfer_msg(msg: BinanceTransferMsg):
     w = bytearray()
     w.extend(SEND_MSG_PREFIX)
-    w.append(SEND_INPUTS_KEY_PREFIX)
 
     input_address = encode_binary_address(msg.inputs[0].address)
 
@@ -182,13 +194,19 @@ def encode_transfer_msg(msg: BinanceTransferMsg):
     inputs.append(SEND_ADDRESS_KEY_PREFIX)
     inputs.extend(calculate_varint(len(input_address)))
     inputs.extend(input_address)
-    inputs.append(SEND_DENOM_KEY_PREFIX)
-    inputs.extend(calculate_varint(len(msg.inputs[0].coins[0].denom)))
-    inputs.extend(msg.inputs[0].coins[0].denom)
-    inputs.append(SEND_AMOUNT_KEY_PREFIX)
-    inputs.extend(calculate_varint(len(msg.inputs[0].coins[0].amount)))
-    inputs.extend(encode_binary_amount(msg.inputs[0].coins[0].amount))
 
+    input_coins = bytearray()
+    input_coins.append(SEND_DENOM_KEY_PREFIX)
+    input_coins.extend(calculate_varint(len(msg.inputs[0].coins[0].denom)))
+    input_coins.extend(msg.inputs[0].coins[0].denom)
+    input_coins.append(SEND_AMOUNT_KEY_PREFIX)
+    input_amount = encode_binary_amount(msg.inputs[0].coins[0].amount)
+    input_coins.extend(input_amount)
+    inputs.append(0x12)  # TODO: replace with const
+    inputs.extend(calculate_varint(len(input_coins)))
+    inputs.extend(input_coins)
+
+    w.append(SEND_INPUTS_KEY_PREFIX)
     w.extend(calculate_varint(len(inputs)))
     w.extend(inputs)
 
@@ -198,15 +216,27 @@ def encode_transfer_msg(msg: BinanceTransferMsg):
     outputs.append(SEND_ADDRESS_KEY_PREFIX)
     outputs.extend(calculate_varint(len(output_address)))
     outputs.extend(output_address)
-    outputs.append(SEND_DENOM_KEY_PREFIX)
-    outputs.extend(calculate_varint(len(msg.outputs[0].coins[0].denom)))
-    outputs.extend(msg.outputs[0].coins[0].denom)
-    outputs.append(SEND_AMOUNT_KEY_PREFIX)
-    outputs.extend(calculate_varint(len(msg.outputs[0].coins[0].amount)))
-    outputs.extend(encode_binary_amount(msg.outputs[0].coins[0].amount))
 
+    output_coins = bytearray()
+    output_coins.append(SEND_DENOM_KEY_PREFIX)
+    output_coins.extend(calculate_varint(len(msg.outputs[0].coins[0].denom)))
+    output_coins.extend(msg.outputs[0].coins[0].denom)
+    output_coins.append(SEND_AMOUNT_KEY_PREFIX)
+    output_coins.extend(encode_binary_amount(msg.outputs[0].coins[0].amount))
+
+    outputs.append(0x12)  # TODO: replace with const
+    outputs.extend(calculate_varint(len(output_coins)))
+    outputs.extend(output_coins)
+
+    w.append(SEND_OUTPUTS_KEY_PREFIX)
     w.extend(calculate_varint(len(outputs)))
     w.extend(outputs)
+
+    array_length = calculate_varint(len(w))
+
+    w[0:0] = STANDARD_TX_PREFIX
+    w[4:4] = unhexlify("0A")  # TODO: replace with const
+    w[5:5] = array_length
 
     return w
 

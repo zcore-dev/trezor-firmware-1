@@ -1,6 +1,5 @@
 from micropython import const
 
-from apps.monero.xmr.serialize import int_serialize
 from trezor.crypto import bech32
 from trezor.crypto.hashlib import ripemd160, sha256
 from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
@@ -9,12 +8,12 @@ from trezor.messages.BinanceSignTx import BinanceSignTx
 from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
 from apps.common import HARDENED
+from apps.monero.xmr.serialize import int_serialize
 
-ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}"}}'
-ENVELOPE_BLUEPRINT_WITH_SOURCE = '{{"account_number":"{account_number}","chain_id":"{chain_id}","memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}","source":"{source}"}}'
-MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{{"address":"{input_address}","coins":[{{"amount":{input_amount},"denom":"{input_denom}"}}]}}],"outputs":[{{"address":"{output_address}","coins":[{{"amount":{output_amount},"denom":"{output_denom}"}}]}}]}}'
+ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","data":null,"memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}","source":"{source}"}}'
+MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{{"address":"{input_address}","coins":[{{"amount":"{input_amount}","denom":"{input_denom}"}}]}}],"outputs":[{{"address":"{output_address}","coins":[{{"amount":"{output_amount}","denom":"{output_denom}"}}]}}]}}'
 MSG_NEWORDER_BLUEPRINT = '{{"id":"{id}","ordertype":{ordertype},"price":{price},"quantity":{quantity},"sender":"{sender}","side":{side},"symbol":"{symbol}","timeinforce":{timeinforce}}}'
-MSG_CANCEL_BLUEPRINT = '{{"refid":"{refid}","sender":"{sender}","symbol":"{symbol}}}'
+MSG_CANCEL_BLUEPRINT = '{{"refid":"{refid}","sender":"{sender}","symbol":"{symbol}"}}'
 
 DIVISIBILITY = const(
     18
@@ -41,19 +40,20 @@ def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
         chain_id=envelope.chain_id,
         memo=envelope.memo,
         msgs=jsonmsg,
-        sequence=envelope.sequence
+        sequence=envelope.sequence,
+        source=source,
     )
 
 
 def produce_transfer_json(msg: BinanceTransferMsg) -> str:
-    firstinput = next(iter(msg.inputs.coins))
-    firstoutput = next(iter(msg.outputs.coins))
+    firstinput = next(iter(msg.inputs[0].coins))
+    firstoutput = next(iter(msg.outputs[0].coins))
 
     return MSG_TRANSFER_BLUEPRINT.format(
-        input_address=msg.inputs.address,
+        input_address=msg.inputs[0].address,
         input_amount=firstinput.amount,
         input_denom=firstinput.denom,
-        output_address=msg.outputs.address,
+        output_address=msg.outputs[0].address,
         output_amount=firstoutput.amount,
         output_denom=firstoutput.denom,
     )
@@ -101,7 +101,9 @@ def encode_binary_address(bech32address):
 
 
 def encode_binary_amount(amount):
-    return int_serialize.dump_uvarint_b(amount)  # TODO: using varint from monero, move to binance app?
+    return int_serialize.dump_uvarint_b(
+        amount
+    )  # TODO: using varint from monero, move to binance app?
 
 
 def validate_full_path(path: list) -> bool:
