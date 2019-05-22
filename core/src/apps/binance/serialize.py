@@ -188,49 +188,51 @@ def encode_transfer_msg(msg: BinanceTransferMsg):
     w = bytearray()
     w.extend(SEND_MSG_PREFIX)
 
-    input_address = encode_binary_address(msg.inputs[0].address)
+    for txinput in msg.inputs:
+        input_address = encode_binary_address(txinput.address)
+        inputs = bytearray()
+        inputs.append(SEND_ADDRESS_KEY_PREFIX)
+        inputs.extend(calculate_varint(len(input_address)))
+        inputs.extend(input_address)
 
-    inputs = bytearray()
-    inputs.append(SEND_ADDRESS_KEY_PREFIX)
-    inputs.extend(calculate_varint(len(input_address)))
-    inputs.extend(input_address)
+        for coin in txinput.coins:
+            input_coins = bytearray()
+            input_coins.append(SEND_DENOM_KEY_PREFIX)
+            input_coins.extend(calculate_varint(len(coin.denom)))
+            input_coins.extend(coin.denom)
+            input_coins.append(SEND_AMOUNT_KEY_PREFIX)
+            input_amount = encode_binary_amount(coin.amount)
+            input_coins.extend(input_amount)
+            inputs.append(0x12)  # TODO: replace with const
+            inputs.extend(calculate_varint(len(input_coins)))
+            inputs.extend(input_coins)
 
-    input_coins = bytearray()
-    input_coins.append(SEND_DENOM_KEY_PREFIX)
-    input_coins.extend(calculate_varint(len(msg.inputs[0].coins[0].denom)))
-    input_coins.extend(msg.inputs[0].coins[0].denom)
-    input_coins.append(SEND_AMOUNT_KEY_PREFIX)
-    input_amount = encode_binary_amount(msg.inputs[0].coins[0].amount)
-    input_coins.extend(input_amount)
-    inputs.append(0x12)  # TODO: replace with const
-    inputs.extend(calculate_varint(len(input_coins)))
-    inputs.extend(input_coins)
+        w.append(SEND_INPUTS_KEY_PREFIX)
+        w.extend(calculate_varint(len(inputs)))
+        w.extend(inputs)
 
-    w.append(SEND_INPUTS_KEY_PREFIX)
-    w.extend(calculate_varint(len(inputs)))
-    w.extend(inputs)
+    for txoutput in msg.outputs:
+        output_address = encode_binary_address(txoutput.address)
 
-    output_address = encode_binary_address(msg.outputs[0].address)
+        outputs = bytearray()
+        outputs.append(SEND_ADDRESS_KEY_PREFIX)
+        outputs.extend(calculate_varint(len(output_address)))
+        outputs.extend(output_address)
 
-    outputs = bytearray()
-    outputs.append(SEND_ADDRESS_KEY_PREFIX)
-    outputs.extend(calculate_varint(len(output_address)))
-    outputs.extend(output_address)
+        for coin in txoutput.coins:
+            output_coins = bytearray()
+            output_coins.append(SEND_DENOM_KEY_PREFIX)
+            output_coins.extend(calculate_varint(len(coin.denom)))
+            output_coins.extend(coin.denom)
+            output_coins.append(SEND_AMOUNT_KEY_PREFIX)
+            output_coins.extend(encode_binary_amount(coin.amount))
+            outputs.append(0x12)  # TODO: replace with const
+            outputs.extend(calculate_varint(len(output_coins)))
+            outputs.extend(output_coins)
 
-    output_coins = bytearray()
-    output_coins.append(SEND_DENOM_KEY_PREFIX)
-    output_coins.extend(calculate_varint(len(msg.outputs[0].coins[0].denom)))
-    output_coins.extend(msg.outputs[0].coins[0].denom)
-    output_coins.append(SEND_AMOUNT_KEY_PREFIX)
-    output_coins.extend(encode_binary_amount(msg.outputs[0].coins[0].amount))
-
-    outputs.append(0x12)  # TODO: replace with const
-    outputs.extend(calculate_varint(len(output_coins)))
-    outputs.extend(output_coins)
-
-    w.append(SEND_OUTPUTS_KEY_PREFIX)
-    w.extend(calculate_varint(len(outputs)))
-    w.extend(outputs)
+        w.append(SEND_OUTPUTS_KEY_PREFIX)
+        w.extend(calculate_varint(len(outputs)))
+        w.extend(outputs)
 
     array_length = calculate_varint(len(w))
 

@@ -2,11 +2,9 @@ from ubinascii import hexlify
 
 from trezor.crypto.curve import secp256k1
 from trezor.crypto.hashlib import sha256
-from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
-from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
+from trezor.messages import MessageType
 from trezor.messages.BinanceSignedTx import BinanceSignedTx
 from trezor.messages.BinanceSignTx import BinanceSignTx
-from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
 from apps.binance import CURVE, helpers, layout
 from apps.binance.serialize import encode
@@ -27,14 +25,15 @@ async def sign_tx(ctx, envelope: BinanceSignTx, msg, keychain):
     encoded_message = encode(envelope, msg, signature_bytes, node.public_key())
 
     # TODO: what to validate/confirm with various messages?
-    if isinstance(msg, BinanceTransferMsg):
-        firstoutput = next(iter(msg.outputs))
-        await layout.require_confirm_transfer(
-            ctx, hexlify(firstoutput.address), firstoutput.coins.amount
-        )
-    elif isinstance(msg, BinanceOrderMsg):
+    if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
+        for output in msg.outputs:
+            for coin in output.coins:
+                await layout.require_confirm_transfer(
+                    ctx, hexlify(output.address), coin.amount, coin.denom
+                )
+    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
         await layout.require_confirm_order(ctx)
-    elif isinstance(msg, BinanceCancelMsg):
+    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
         await layout.require_confirm_cancel(ctx)
     else:
         raise ValueError("input message unrecognized, is of type " + type(msg).__name__)

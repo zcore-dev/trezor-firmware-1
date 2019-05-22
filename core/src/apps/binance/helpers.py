@@ -2,6 +2,7 @@ from micropython import const
 
 from trezor.crypto import bech32
 from trezor.crypto.hashlib import ripemd160, sha256
+from trezor.messages import MessageType
 from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
 from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
 from trezor.messages.BinanceSignTx import BinanceSignTx
@@ -11,9 +12,11 @@ from apps.common import HARDENED
 from apps.monero.xmr.serialize import int_serialize
 
 ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","data":null,"memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}","source":"{source}"}}'
-MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{{"address":"{input_address}","coins":[{{"amount":"{input_amount}","denom":"{input_denom}"}}]}}],"outputs":[{{"address":"{output_address}","coins":[{{"amount":"{output_amount}","denom":"{output_denom}"}}]}}]}}'
+MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{inputs}],"outputs":[{outputs}]}}'
 MSG_NEWORDER_BLUEPRINT = '{{"id":"{id}","ordertype":{ordertype},"price":{price},"quantity":{quantity},"sender":"{sender}","side":{side},"symbol":"{symbol}","timeinforce":{timeinforce}}}'
 MSG_CANCEL_BLUEPRINT = '{{"refid":"{refid}","sender":"{sender}","symbol":"{symbol}"}}'
+INPUT_OUTPUT_BLUEPRINT = '{{"address":"{address}","coins":[{coins}]}}'
+COIN_BLUEPRINT = '{{"amount":"{amount}","denom":"{denom}"}}'
 
 DIVISIBILITY = const(
     18
@@ -21,11 +24,11 @@ DIVISIBILITY = const(
 
 
 def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
-    if isinstance(msg, BinanceTransferMsg):
+    if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
         jsonmsg = produce_transfer_json(msg)
-    elif isinstance(msg, BinanceOrderMsg):
+    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
         jsonmsg = produce_neworder_json(msg)
-    elif isinstance(msg, BinanceCancelMsg):
+    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
         jsonmsg = produce_cancel_json(msg)
     else:
         raise ValueError("input message unrecognized, is of type " + type(msg).__name__)
@@ -46,16 +49,35 @@ def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
 
 
 def produce_transfer_json(msg: BinanceTransferMsg) -> str:
-    firstinput = next(iter(msg.inputs[0].coins))
-    firstoutput = next(iter(msg.outputs[0].coins))
+    inputs = ""
+    for count, txinput in enumerate(msg.inputs, 1):
+        coins = ""
+        for coincount, coin in enumerate(txinput.coins, 1):
+            coin_json = COIN_BLUEPRINT.format(amount=coin.amount, denom=coin.denom)
+            coins = coins + coin_json
+            if (coincount < len(txinput.coins)):
+                coins = coins + ","
+        input_json = INPUT_OUTPUT_BLUEPRINT.format(address=txinput.address, coins=coins)
+        inputs = inputs + input_json
+        if (count < len(msg.inputs)):
+            inputs = inputs + ","
+
+    outputs = ""
+    for count, txoutput in enumerate(msg.outputs, 1):
+        coins = ""
+        for coincount, coin in enumerate(txoutput.coins, 1):
+            coin_json = COIN_BLUEPRINT.format(amount=coin.amount, denom=coin.denom)
+            coins = coins + coin_json
+            if coincount < len(txoutput.coins):
+                coins = coins + ","
+        output_json = INPUT_OUTPUT_BLUEPRINT.format(address=txoutput.address, coins=coins)
+        outputs = outputs + output_json
+        if count < len(msg.outputs):
+            outputs = outputs + ","
 
     return MSG_TRANSFER_BLUEPRINT.format(
-        input_address=msg.inputs[0].address,
-        input_amount=firstinput.amount,
-        input_denom=firstinput.denom,
-        output_address=msg.outputs[0].address,
-        output_amount=firstoutput.amount,
-        output_denom=firstoutput.denom,
+        inputs=inputs,
+        outputs=outputs,
     )
 
 

@@ -16,9 +16,9 @@ async def require_confirm_fee(ctx, fee):
     await require_confirm(ctx, text, ButtonRequestType.ConfirmOutput)
 
 
-async def require_confirm_transfer(ctx, to, value):
+async def require_confirm_transfer(ctx, to, value, denom):
     text = Text("Confirm sending", ui.ICON_SEND, icon_color=ui.GREEN)
-    text.bold(format_amount(value, helpers.DIVISIBILITY) + " BNB")
+    text.bold(format_amount(value, helpers.DIVISIBILITY) + " " + denom)
     text.normal("to")
     text.mono(*split_address(to))
     return await require_hold_to_confirm(ctx, text, ButtonRequestType.SignTx)
