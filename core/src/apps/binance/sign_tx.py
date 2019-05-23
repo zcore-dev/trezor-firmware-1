@@ -26,15 +26,22 @@ async def sign_tx(ctx, envelope: BinanceSignTx, msg, keychain):
 
     # TODO: what to validate/confirm with various messages?
     if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
+        for txinput in msg.inputs:
+            for coin in txinput.coins:
+                await layout.require_confirm_transfer(
+                    ctx, hexlify(txinput.address), coin.amount, coin.denom
+                )
         for output in msg.outputs:
             for coin in output.coins:
                 await layout.require_confirm_transfer(
                     ctx, hexlify(output.address), coin.amount, coin.denom
                 )
     elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
-        await layout.require_confirm_order(ctx)
+        await layout.require_confirm_order_side(ctx, msg.side)
+        await layout.require_confirm_order_address(ctx, hexlify(msg.address))
+        await layout.require_confirm_order_details(ctx, msg.quantity, msg.price)
     elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
-        await layout.require_confirm_cancel(ctx)
+        await layout.require_confirm_cancel(ctx, msg.refid)
     else:
         raise ValueError("input message unrecognized, is of type " + type(msg).__name__)
 

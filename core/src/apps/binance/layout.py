@@ -21,14 +21,35 @@ async def require_confirm_transfer(ctx, to, value, denom):
     text.bold(format_amount(value, helpers.DIVISIBILITY) + " " + denom)
     text.normal("to")
     text.mono(*split_address(to))
-    return await require_hold_to_confirm(ctx, text, ButtonRequestType.SignTx)
+    return await require_hold_to_confirm(ctx, text, ButtonRequestType.ConfirmOutput)
 
 
-async def require_confirm_order(ctx):
-    text = Text("Confirm order", ui.ICON_SEND, icon_color=ui.GREEN)
-    return await require_hold_to_confirm(ctx, text, ButtonRequestType.SignTx)
-
-
-async def require_confirm_cancel(ctx):
+async def require_confirm_cancel(ctx, refid):
     text = Text("Confirm cancel", ui.ICON_SEND, icon_color=ui.GREEN)
-    return await require_hold_to_confirm(ctx, text, ButtonRequestType.SignTx)
+    text.normal("Reference id:")
+    text.bold(refid)
+    return await require_hold_to_confirm(ctx, text, ButtonRequestType.ConfirmOutput)
+
+
+async def require_confirm_order_side(ctx, side):
+    text = Text("Confirm order side", ui.ICON_SEND, icon_color=ui.GREEN)
+    if side == 1:
+        text.bold("buy")
+    elif side == 2:
+        text.bold("sell")
+    return await require_hold_to_confirm(ctx, text, ButtonRequestType.ConfirmOutput)
+
+
+async def require_confirm_order_details(ctx, quantity, price):
+    text = Text("Confirm order", ui.ICON_SEND, icon_color=ui.GREEN)
+    text.normal("Quantity:")
+    text.bold(quantity)
+    text.normal("Price:")
+    text.bold(price)
+    return await require_hold_to_confirm(ctx, text, ButtonRequestType.ConfirmOutput)
+
+
+async def require_confirm_order_address(ctx, address):
+    text = Text("Confirm order sender", ui.ICON_SEND, icon_color=ui.GREEN)
+    text.bold(address)
+    return await require_hold_to_confirm(ctx, text, ButtonRequestType.ConfirmOutput)

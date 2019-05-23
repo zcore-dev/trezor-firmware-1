@@ -55,11 +55,11 @@ def produce_transfer_json(msg: BinanceTransferMsg) -> str:
         for coincount, coin in enumerate(txinput.coins, 1):
             coin_json = COIN_BLUEPRINT.format(amount=coin.amount, denom=coin.denom)
             coins = coins + coin_json
-            if (coincount < len(txinput.coins)):
+            if coincount < len(txinput.coins):
                 coins = coins + ","
         input_json = INPUT_OUTPUT_BLUEPRINT.format(address=txinput.address, coins=coins)
         inputs = inputs + input_json
-        if (count < len(msg.inputs)):
+        if count < len(msg.inputs):
             inputs = inputs + ","
 
     outputs = ""
@@ -70,15 +70,14 @@ def produce_transfer_json(msg: BinanceTransferMsg) -> str:
             coins = coins + coin_json
             if coincount < len(txoutput.coins):
                 coins = coins + ","
-        output_json = INPUT_OUTPUT_BLUEPRINT.format(address=txoutput.address, coins=coins)
+        output_json = INPUT_OUTPUT_BLUEPRINT.format(
+            address=txoutput.address, coins=coins
+        )
         outputs = outputs + output_json
         if count < len(msg.outputs):
             outputs = outputs + ","
 
-    return MSG_TRANSFER_BLUEPRINT.format(
-        inputs=inputs,
-        outputs=outputs,
-    )
+    return MSG_TRANSFER_BLUEPRINT.format(inputs=inputs, outputs=outputs)
 
 
 def produce_neworder_json(msg: BinanceOrderMsg) -> str:
