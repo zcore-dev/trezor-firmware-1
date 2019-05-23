@@ -39,25 +39,28 @@ async def sign_tx(ctx, envelope, keychain):
     signature_bytes = generate_content_signature(msg_json.encode(), node.private_key())
     encoded_message = encode(envelope, msgs, signature_bytes, node.public_key())
 
-    if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
-        for txinput in msg.inputs:
-            for coin in txinput.coins:
-                await layout.require_confirm_transfer(
-                    ctx, txinput.address, coin.amount, coin.denom
-                )
-        for output in msg.outputs:
-            for coin in output.coins:
-                await layout.require_confirm_transfer(
-                    ctx, output.address, coin.amount, coin.denom
-                )
-    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
-        await layout.require_confirm_order_side(ctx, msg.side)
-        await layout.require_confirm_order_address(ctx, msg.sender)
-        await layout.require_confirm_order_details(ctx, msg.quantity, msg.price)
-    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
-        await layout.require_confirm_cancel(ctx, msg.refid)
-    else:
-        raise ValueError("input message unrecognized, is of type " + type(msg).__name__)
+    for msg in msgs:
+        if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
+            for txinput in msg.inputs:
+                for coin in txinput.coins:
+                    await layout.require_confirm_transfer(
+                        ctx, txinput.address, coin.amount, coin.denom
+                    )
+            for output in msg.outputs:
+                for coin in output.coins:
+                    await layout.require_confirm_transfer(
+                        ctx, output.address, coin.amount, coin.denom
+                    )
+        elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
+            await layout.require_confirm_order_side(ctx, msg.side)
+            await layout.require_confirm_order_address(ctx, msg.sender)
+            await layout.require_confirm_order_details(ctx, msg.quantity, msg.price)
+        elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
+            await layout.require_confirm_cancel(ctx, msg.refid)
+        else:
+            raise ValueError(
+                "input message unrecognized, is of type " + type(msg).__name__
+            )
 
     # TODO: proto looks like it's expecting json, we prefer binary marshall encoding, problem?
     return BinanceSignedTx(
