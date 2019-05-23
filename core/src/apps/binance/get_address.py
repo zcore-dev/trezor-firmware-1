@@ -13,7 +13,9 @@ async def get_address(ctx, msg: BinanceGetAddress, keychain):
 
     node = keychain.derive(msg.address_n)
     pubkey = node.public_key()
-    address = helpers.address_from_public_key(pubkey)
+    address = helpers.address_from_public_key(
+        pubkey, "bnb"
+    )  # TODO: solve testnet vs mainnet?
 
     if msg.show_display:
         desc = address_n_to_str(msg.address_n)

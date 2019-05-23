@@ -111,7 +111,6 @@ def address_from_public_key(pubkey: bytes, hrp: str) -> str:
 
     convertedbits = bech32.convertbits(h, 8, 5, False)
 
-    # TODO: handle testnet vs mainnet
     return bech32.bech32_encode(hrp, convertedbits)
 
 
