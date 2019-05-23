@@ -42,8 +42,9 @@ class TestBinanceSerialze(unittest.TestCase):
                               side=2,
                               symbol="ADA.B-B63_BNB",
                               timeinforce=2)
+        msgs = [msg]
 
-        encoded = encode(envelope, msg, unhexlify(signature_hex), unhexlify(pubkey_hex))
+        encoded = encode(envelope, msgs, unhexlify(signature_hex), unhexlify(pubkey_hex))
         self.assertEqual(hexlify(encoded), expected_encoded_msg.encode())
 
 
@@ -57,8 +58,9 @@ class TestBinanceSerialze(unittest.TestCase):
         msg = BinanceCancelMsg(refid="BA36F0FAD74D8F41045463E4774F328F4AF779E5-29", 
                                sender="tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd", 
                                symbol="BCHSV.B-10F_BNB")
+        msgs = [msg]
 
-        encoded = encode(envelope, msg, unhexlify(signature_hex), unhexlify(pubkey_hex))
+        encoded = encode(envelope, msgs, unhexlify(signature_hex), unhexlify(pubkey_hex))
         self.assertEqual(hexlify(encoded), expected_encoded_msg.encode())
 
 
@@ -73,8 +75,9 @@ class TestBinanceSerialze(unittest.TestCase):
         first_input = BinanceInputOutput(address="tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd", coins=[coin])
         first_output = BinanceInputOutput(address="tbnb1ss57e8sa7xnwq030k2ctr775uac9gjzglqhvpy", coins=[coin])
         msg = BinanceTransferMsg(inputs=[first_input], outputs=[first_output])
+        msgs = [msg]
 
-        encoded = encode(envelope, msg, unhexlify(signature_hex), unhexlify(pubkey_hex))
+        encoded = encode(envelope, msgs, unhexlify(signature_hex), unhexlify(pubkey_hex))
         self.assertEqual(hexlify(encoded), expected_encoded_msg.encode())
 
 

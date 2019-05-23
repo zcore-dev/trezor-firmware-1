@@ -17,20 +17,26 @@ async def sign_tx(ctx, envelope, keychain):
         ctx, helpers.validate_full_path, keychain, envelope.address_n, CURVE
     )
 
-    tx_req = BinanceTxRequest()
+    msgs = []
 
-    msg = await ctx.call(
-        tx_req,
-        MessageType.BinanceCancelMsg,
-        MessageType.BinanceOrderMsg,
-        MessageType.BinanceTransferMsg,
-    )
+    i = 0
+    while i < envelope.msg_count:
+        tx_req = BinanceTxRequest()
+
+        msg = await ctx.call(
+            tx_req,
+            MessageType.BinanceCancelMsg,
+            MessageType.BinanceOrderMsg,
+            MessageType.BinanceTransferMsg,
+        )
+
+        msgs.append(msg)
 
     node = keychain.derive(envelope.address_n)
 
-    msg_json = helpers.produce_json_for_signing(envelope, msg)
+    msg_json = helpers.produce_json_for_signing(envelope, msgs)
     signature_bytes = generate_content_signature(msg_json.encode(), node.private_key())
-    encoded_message = encode(envelope, msg, signature_bytes, node.public_key())
+    encoded_message = encode(envelope, msgs, signature_bytes, node.public_key())
 
     if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
         for txinput in msg.inputs:

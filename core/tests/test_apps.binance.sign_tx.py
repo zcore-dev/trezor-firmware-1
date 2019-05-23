@@ -1,7 +1,7 @@
 from common import *
 
 from apps.binance.helpers import produce_json_for_signing
-from apps.binance.sign_tx import generate_content_signature, verify_content_signature
+from apps.binance.sign_tx import generate_content_signature, verify_content_signature, sign_tx
 from apps.binance.serialize import encode_std_signature, encode_order_msg, encode
 
 from trezor.messages.BinanceCancelMsg import BinanceCancelMsg
@@ -12,7 +12,7 @@ from trezor.messages.BinanceSignTx import BinanceSignTx
 from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
 
-class TestBinanceSign(unittest.TestCase):
+class TestBinanceSign(unittest.TestCase):    
     def test_order_signature(self):
         # source of testing data
         # https://github.com/binance-chain/javascript-sdk/blob/master/__tests__/fixtures/placeOrder.json
@@ -22,7 +22,7 @@ class TestBinanceSign(unittest.TestCase):
         private_key = "90335b9d2153ad1a9799a3ccc070bd64b4164e9642ee1dd48053c33f9a3a05e9"
 
         # Testing data for object creation is decoded from json_hex_msg
-        envelope = BinanceSignTx(account_number=34, chain_id="Binance-Chain-Nile", memo="", sequence=32, source=1)
+        envelope = BinanceSignTx(msg_count=1, account_number=34, chain_id="Binance-Chain-Nile", memo="", sequence=32, source=1)
         msg = BinanceOrderMsg(id="BA36F0FAD74D8F41045463E4774F328F4AF779E5-33",
                               ordertype=2,
                               price=100000000,
@@ -31,8 +31,9 @@ class TestBinanceSign(unittest.TestCase):
                               side=1,
                               symbol="ADA.B-B63_BNB",
                               timeinforce=1)
+        msgs = [msg]
 
-        msg_json = produce_json_for_signing(envelope, msg)
+        msg_json = produce_json_for_signing(envelope, msgs)
 
         #check if our json string produced for signing is the same as test vector
         self.assertEqual(hexlify(msg_json).decode(), json_hex_msg)
@@ -53,12 +54,13 @@ class TestBinanceSign(unittest.TestCase):
         private_key = "90335b9d2153ad1a9799a3ccc070bd64b4164e9642ee1dd48053c33f9a3a05e9"
 
         # Testing data for object creation is decoded from json_hex_msg
-        envelope = BinanceSignTx(account_number=34, chain_id="Binance-Chain-Nile", memo="", sequence=33, source=1)
+        envelope = BinanceSignTx(msg_count=1, account_number=34, chain_id="Binance-Chain-Nile", memo="", sequence=33, source=1)
         msg = BinanceCancelMsg(refid="BA36F0FAD74D8F41045463E4774F328F4AF779E5-29",
                                sender="tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd",
                                symbol="BCHSV.B-10F_BNB")
+        msgs = [msg]
 
-        msg_json = produce_json_for_signing(envelope, msg)
+        msg_json = produce_json_for_signing(envelope, msgs)
 
         #check if our json string produced for signing is the same as test vector
         self.assertEqual(hexlify(msg_json).decode(), json_hex_msg)
@@ -79,13 +81,14 @@ class TestBinanceSign(unittest.TestCase):
         private_key = "90335b9d2153ad1a9799a3ccc070bd64b4164e9642ee1dd48053c33f9a3a05e9"
 
         # Testing data for object creation is decoded from json_hex_msg
-        envelope = BinanceSignTx(account_number=34, chain_id="Binance-Chain-Nile", memo="test", sequence=31, source=1)
+        envelope = BinanceSignTx(msg_count=1, account_number=34, chain_id="Binance-Chain-Nile", memo="test", sequence=31, source=1)
         coin = BinanceCoin(denom="BNB", amount=1000000000)
         first_input = BinanceInputOutput(address="tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd", coins=[coin])
         first_output = BinanceInputOutput(address="tbnb1ss57e8sa7xnwq030k2ctr775uac9gjzglqhvpy", coins=[coin])
         msg = BinanceTransferMsg(inputs=[first_input], outputs=[first_output])
+        msgs = [msg]
 
-        msg_json = produce_json_for_signing(envelope, msg)
+        msg_json = produce_json_for_signing(envelope, msgs)
 
         #check if our json string produced for signing is the same as test vector
         self.assertEqual(hexlify(msg_json).decode(), json_hex_msg)

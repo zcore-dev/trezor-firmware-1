@@ -11,7 +11,7 @@ from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 from apps.common import HARDENED
 from apps.monero.xmr.serialize import int_serialize
 
-ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","data":null,"memo":"{memo}","msgs":[{msgs}],"sequence":"{sequence}","source":"{source}"}}'
+ENVELOPE_BLUEPRINT = '{{"account_number":"{account_number}","chain_id":"{chain_id}","data":null,"memo":"{memo}","msgs":{msgs},"sequence":"{sequence}","source":"{source}"}}'
 MSG_TRANSFER_BLUEPRINT = '{{"inputs":[{inputs}],"outputs":[{outputs}]}}'
 MSG_NEWORDER_BLUEPRINT = '{{"id":"{id}","ordertype":{ordertype},"price":{price},"quantity":{quantity},"sender":"{sender}","side":{side},"symbol":"{symbol}","timeinforce":{timeinforce}}}'
 MSG_CANCEL_BLUEPRINT = '{{"refid":"{refid}","sender":"{sender}","symbol":"{symbol}"}}'
@@ -23,15 +23,29 @@ DIVISIBILITY = const(
 )  # 1*10^18 Jagers equal 1 BNB https://www.binance.vision/glossary/jager
 
 
-def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
-    if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
-        jsonmsg = produce_transfer_json(msg)
-    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
-        jsonmsg = produce_neworder_json(msg)
-    elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
-        jsonmsg = produce_cancel_json(msg)
-    else:
-        raise ValueError("input message unrecognized, is of type " + type(msg).__name__)
+def produce_json_for_signing(envelope: BinanceSignTx, msgs) -> str:
+    json_msgs = ""
+    for count, msg in enumerate(msgs, 1):
+        if count == 1:
+            json_msgs += "["
+
+        if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:
+            json_msg = produce_transfer_json(msg)
+        elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceOrderMsg:
+            json_msg = produce_neworder_json(msg)
+        elif msg.MESSAGE_WIRE_TYPE == MessageType.BinanceCancelMsg:
+            json_msg = produce_cancel_json(msg)
+        else:
+            raise ValueError(
+                "input message unrecognized, is of type " + type(msg).__name__
+            )
+
+        json_msgs += json_msg
+
+        if count == envelope.msg_count:
+            json_msgs += "]"
+        else:
+            json_msgs += ","
 
     if envelope.source is None or envelope.source <= 0:
         source = 0
@@ -42,7 +56,7 @@ def produce_json_for_signing(envelope: BinanceSignTx, msg) -> str:
         account_number=envelope.account_number,
         chain_id=envelope.chain_id,
         memo=envelope.memo,
-        msgs=jsonmsg,
+        msgs=json_msgs,
         sequence=envelope.sequence,
         source=source,
     )
