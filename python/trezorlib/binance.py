@@ -34,7 +34,7 @@ def sign_tx(client, address_n, tx_json):
     )
 
     if not isinstance(response, messages.BinanceTxRequest):
-        raise RuntimeError("Invalid response, expected BinanceTxRequest")
+        raise RuntimeError("Invalid response, expected BinanceTxRequest, received " + type(response).__name__)
     
     i = 0
     while i < msg_count:
@@ -52,10 +52,11 @@ def sign_tx(client, address_n, tx_json):
         response = client.call(
             msg
         )
+
         i += 1
 
     if not isinstance(response, messages.BinanceSignedTx):
-        raise RuntimeError("Invalid response, expected BinanceSignedTx")
+        raise RuntimeError("Invalid response, expected BinanceSignedTx, received " + type(response).__name__)
     
     return response
 

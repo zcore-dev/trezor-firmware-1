@@ -31,6 +31,7 @@ async def sign_tx(ctx, envelope, keychain):
         )
 
         msgs.append(msg)
+        i += 1
 
     node = keychain.derive(envelope.address_n)
 
