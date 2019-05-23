@@ -9,12 +9,13 @@ class TestBinanceAddress(unittest.TestCase):
     def test_privkey_to_address(self):
         #source of test data - binance javascript SDK
         privkey = "90335b9d2153ad1a9799a3ccc070bd64b4164e9642ee1dd48053c33f9a3a05e9"
-        expectedresult = "tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd"
+        expected_address = "tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd"
 
         pubkey = secp256k1.publickey(unhexlify(privkey), True)
         address = address_from_public_key(pubkey, "tbnb")
 
-        self.assertEqual(address, expectedresult)
+        self.assertEqual(address, expected_address)
+
 
     def test_paths(self):
     # 44'/714'/a'/0/0 is correct
@@ -42,6 +43,7 @@ class TestBinanceAddress(unittest.TestCase):
 
         for path in correct_paths:
             self.assertTrue(validate_full_path(path))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,16 +8,24 @@ from trezor.messages.BinanceOrderMsg import BinanceOrderMsg
 from trezor.messages.BinanceSignTx import BinanceSignTx
 from trezor.messages.BinanceTransferMsg import BinanceTransferMsg
 
-from apps.binance.helpers import produce_json_for_signing, encode_binary_address
+from apps.binance.helpers import produce_json_for_signing, encode_binary_address, encode_binary_amount
 from apps.binance.sign_tx import generate_content_signature, verify_content_signature
 from apps.binance.serialize import encode_std_signature, encode_order_msg, encode
 
 class TestBinanceSerialze(unittest.TestCase):
     def test_encode_address_to_binary(self):
         bech32_address = "tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd"
-        encoded_address = unhexlify("BA36F0FAD74D8F41045463E4774F328F4AF779E5")
+        expected_encoded_address = unhexlify("BA36F0FAD74D8F41045463E4774F328F4AF779E5")
 
-        self.assertEqual(encode_binary_address(bech32_address), encoded_address)
+        self.assertEqual(encode_binary_address(bech32_address), expected_encoded_address)
+
+
+    def test_encode_amount_to_binary(self):
+        amount = 100000000
+        expected_encoded_amount = unhexlify("80c2d72f")
+
+        self.assertEqual(encode_binary_amount(amount), expected_encoded_amount)
+
 
     def test_encode_order_to_binary(self):
         #source of testing data https://github.com/binance-chain/javascript-sdk/blob/master/__tests__/fixtures/placeOrder.json
@@ -38,6 +46,7 @@ class TestBinanceSerialze(unittest.TestCase):
         encoded = encode(envelope, msg, unhexlify(signature_hex), unhexlify(pubkey_hex))
         self.assertEqual(hexlify(encoded), expected_encoded_msg.encode())
 
+
     def test_encode_cancel_to_binary(self):
         #source of testing data https://github.com/binance-chain/javascript-sdk/blob/master/__tests__/fixtures/cancelOrder.json
         pubkey_hex = "029729a52e4e3c2b4a4e52aa74033eedaf8ba1df5ab6d1f518fd69e67bbd309b0e"
@@ -51,6 +60,7 @@ class TestBinanceSerialze(unittest.TestCase):
 
         encoded = encode(envelope, msg, unhexlify(signature_hex), unhexlify(pubkey_hex))
         self.assertEqual(hexlify(encoded), expected_encoded_msg.encode())
+
 
     def test_encode_transfer_to_binary(self):
         #https://github.com/binance-chain/javascript-sdk/blob/master/__tests__/fixtures/transfer.json
