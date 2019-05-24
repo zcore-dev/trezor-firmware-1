@@ -33,7 +33,7 @@ class TestBinanceSign(unittest.TestCase):
                               timeinforce=1)
         msgs = [msg]
 
-        msg_json = produce_json_for_signing(envelope, msgs)
+        msg_json = produce_json_for_signing(envelope, msg)
 
         #check if our json string produced for signing is the same as test vector
         self.assertEqual(hexlify(msg_json).decode(), json_hex_msg)
@@ -60,7 +60,7 @@ class TestBinanceSign(unittest.TestCase):
                                symbol="BCHSV.B-10F_BNB")
         msgs = [msg]
 
-        msg_json = produce_json_for_signing(envelope, msgs)
+        msg_json = produce_json_for_signing(envelope, msg)
 
         #check if our json string produced for signing is the same as test vector
         self.assertEqual(hexlify(msg_json).decode(), json_hex_msg)
@@ -88,7 +88,7 @@ class TestBinanceSign(unittest.TestCase):
         msg = BinanceTransferMsg(inputs=[first_input], outputs=[first_output])
         msgs = [msg]
 
-        msg_json = produce_json_for_signing(envelope, msgs)
+        msg_json = produce_json_for_signing(envelope, msg)
 
         #check if our json string produced for signing is the same as test vector
         self.assertEqual(hexlify(msg_json).decode(), json_hex_msg)

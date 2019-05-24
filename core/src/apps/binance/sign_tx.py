@@ -17,7 +17,9 @@ async def sign_tx(ctx, envelope, keychain):
         ctx, helpers.validate_full_path, keychain, envelope.address_n, CURVE
     )
 
+    node = keychain.derive(envelope.address_n)
     msgs = []
+    signatures = []
 
     i = 0
     while i < envelope.msg_count:
@@ -30,14 +32,15 @@ async def sign_tx(ctx, envelope, keychain):
             MessageType.BinanceTransferMsg,
         )
 
+        msg_json = helpers.produce_json_for_signing(envelope, msg)
+        signature_bytes = generate_content_signature(
+            msg_json.encode(), node.private_key()
+        )
         msgs.append(msg)
+        signatures.append(signature_bytes)
         i += 1
 
-    node = keychain.derive(envelope.address_n)
-
-    msg_json = helpers.produce_json_for_signing(envelope, msgs)
-    signature_bytes = generate_content_signature(msg_json.encode(), node.private_key())
-    encoded_message = encode(envelope, msgs, signature_bytes, node.public_key())
+    encoded_message = encode(envelope, msgs, signatures, node.public_key())
 
     for msg in msgs:
         if msg.MESSAGE_WIRE_TYPE == MessageType.BinanceTransferMsg:

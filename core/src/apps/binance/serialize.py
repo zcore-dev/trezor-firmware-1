@@ -61,12 +61,13 @@ STDTX_MEMO_KEY_PREFIX = 0x1A
 
 
 # TODO: pass signature+pubkey or calculate them in serializer?
-def encode(envelope: BinanceSignTx, msgs, signature, pubkey):
+def encode(envelope: BinanceSignTx, msgs, signatures, pubkey):
 
     final_array = bytearray()
     for msg in msgs:
         final_array.extend(encode_object(msg))
-    final_array.extend(encode_std_signature(envelope, signature, pubkey))
+    for signature in signatures:
+        final_array.extend(encode_std_signature(envelope, signature, pubkey))
 
     if envelope.memo is not None and envelope.memo != "":
         final_array.append(STDTX_MEMO_KEY_PREFIX)
