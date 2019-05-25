@@ -123,6 +123,12 @@ if not utils.BITCOIN_ONLY:
     CardanoAddress = 308
     CardanoTxAck = 309
     CardanoSignedTx = 310
+    OntologyGetAddress = 350
+    OntologyAddress = 351
+    OntologyGetPublicKey = 352
+    OntologyPublicKey = 353
+    OntologySignTx = 354
+    OntologySignedTx = 355
     RippleGetAddress = 400
     RippleAddress = 401
     RippleSignTx = 402
