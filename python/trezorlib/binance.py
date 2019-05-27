@@ -19,9 +19,8 @@ def get_public_key(client, address_n, show_display=False):
 #TODO: implement all messages exchange
 @session
 def sign_tx(client, address_n, tx_json):
-    msgs = tx_json['msgs']
-    msg_count = len(msgs)
-    envelope = messages.BinanceSignTx(msg_count=msg_count,
+    msg = tx_json['msgs'][0]
+    envelope = messages.BinanceSignTx(msg_count=1,
                                       account_number=int(tx_json['account_number']),
                                       chain_id=tx_json['chain_id'],
                                       memo=tx_json['memo'],
@@ -36,24 +35,18 @@ def sign_tx(client, address_n, tx_json):
     if not isinstance(response, messages.BinanceTxRequest):
         raise RuntimeError("Invalid response, expected BinanceTxRequest, received " + type(response).__name__)
     
-    i = 0
-    while i < msg_count:
-        json_msg = tx_json['msgs'][i]
-        msg_type = determine_message_type(json_msg)
-        if msg_type == messages.MessageType.BinanceCancelMsg:
-            msg = json_to_cancel_msg(json_msg)
-        elif msg_type == messages.MessageType.BinanceOrderMsg:
-            msg = json_to_order_msg(json_msg)
-        elif msg_type == messages.MessageType.BinanceTransferMsg:
-            msg = json_to_transfer_msg(json_msg)
-        else:
-            raise RuntimeError("blah blah")
-        
-        response = client.call(
-            msg
-        )
 
-        i += 1
+    msg_type = determine_message_type(msg)
+    if msg_type == messages.MessageType.BinanceCancelMsg:
+        msg = json_to_cancel_msg(msg)
+    elif msg_type == messages.MessageType.BinanceOrderMsg:
+        msg = json_to_order_msg(msg)
+    elif msg_type == messages.MessageType.BinanceTransferMsg:
+        msg = json_to_transfer_msg(msg)
+    
+    response = client.call(
+        msg
+    )
 
     if not isinstance(response, messages.BinanceSignedTx):
         raise RuntimeError("Invalid response, expected BinanceSignedTx, received " + type(response).__name__)

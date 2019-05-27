@@ -31,7 +31,6 @@ class TestBinanceSign(unittest.TestCase):
                               side=1,
                               symbol="ADA.B-B63_BNB",
                               timeinforce=1)
-        msgs = [msg]
 
         msg_json = produce_json_for_signing(envelope, msg)
 
@@ -58,7 +57,6 @@ class TestBinanceSign(unittest.TestCase):
         msg = BinanceCancelMsg(refid="BA36F0FAD74D8F41045463E4774F328F4AF779E5-29",
                                sender="tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd",
                                symbol="BCHSV.B-10F_BNB")
-        msgs = [msg]
 
         msg_json = produce_json_for_signing(envelope, msg)
 
@@ -86,7 +84,6 @@ class TestBinanceSign(unittest.TestCase):
         first_input = BinanceInputOutput(address="tbnb1hgm0p7khfk85zpz5v0j8wnej3a90w709zzlffd", coins=[coin])
         first_output = BinanceInputOutput(address="tbnb1ss57e8sa7xnwq030k2ctr775uac9gjzglqhvpy", coins=[coin])
         msg = BinanceTransferMsg(inputs=[first_input], outputs=[first_output])
-        msgs = [msg]
 
         msg_json = produce_json_for_signing(envelope, msg)
 
