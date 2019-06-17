@@ -13,15 +13,20 @@ BR = const(-256)
 BR_HALF = const(-257)
 
 
-def render_text(words: list, new_lines: bool, max_lines: int) -> None:
-    # initial rendering state
+def render_text(
+    words: list,
+    new_lines: bool,
+    max_lines: int,
+    bg: int = ui.BG,
+    offset_x: int = TEXT_MARGIN_LEFT,
+    offset_y: int = TEXT_HEADER_HEIGHT + TEXT_LINE_HEIGHT,
+    offset_x_max: int = ui.WIDTH,
+) -> None:
+    # rest of the initial rendering state
     font = ui.NORMAL
     fg = ui.FG
-    bg = ui.BG
-    offset_x = TEXT_MARGIN_LEFT
-    offset_y = TEXT_HEADER_HEIGHT + TEXT_LINE_HEIGHT
-    OFFSET_X_MAX = ui.WIDTH
-    OFFSET_Y_MAX = TEXT_HEADER_HEIGHT + TEXT_LINE_HEIGHT * max_lines
+    offset_y_max = offset_y * max_lines
+
     FONTS = (ui.NORMAL, ui.BOLD, ui.MONO, ui.MONO_BOLD)
 
     # sizes of common glyphs
@@ -35,7 +40,7 @@ def render_text(words: list, new_lines: bool, max_lines: int) -> None:
         if isinstance(word, int):
             if word is BR or word is BR_HALF:
                 # line break or half-line break
-                if offset_y >= OFFSET_Y_MAX:
+                if offset_y >= offset_y_max:
                     ui.display.text(offset_x, offset_y, "...", ui.BOLD, ui.GREY, bg)
                     return
                 offset_x = TEXT_MARGIN_LEFT
@@ -50,13 +55,13 @@ def render_text(words: list, new_lines: bool, max_lines: int) -> None:
 
         width = ui.display.text_width(word, font)
 
-        while offset_x + width > OFFSET_X_MAX or (
-            has_next_word and offset_y >= OFFSET_Y_MAX
+        while offset_x + width > offset_x_max or (
+            has_next_word and offset_y >= offset_y_max
         ):
             beginning_of_line = offset_x == TEXT_MARGIN_LEFT
-            word_fits_in_one_line = width < (OFFSET_X_MAX - TEXT_MARGIN_LEFT)
+            word_fits_in_one_line = width < (offset_x_max - TEXT_MARGIN_LEFT)
             if (
-                offset_y < OFFSET_Y_MAX
+                offset_y < offset_y_max
                 and word_fits_in_one_line
                 and not beginning_of_line
             ):
@@ -65,7 +70,7 @@ def render_text(words: list, new_lines: bool, max_lines: int) -> None:
                 offset_y += TEXT_LINE_HEIGHT
                 break
             # word split
-            if offset_y < OFFSET_Y_MAX:
+            if offset_y < offset_y_max:
                 split = "-"
                 splitw = DASH
             else:
@@ -75,7 +80,7 @@ def render_text(words: list, new_lines: bool, max_lines: int) -> None:
             for index in range(len(word) - 1, 0, -1):
                 letter = word[index]
                 width -= ui.display.text_width(letter, font)
-                if offset_x + width + splitw < OFFSET_X_MAX:
+                if offset_x + width + splitw < offset_x_max:
                     break
             else:
                 index = 0
@@ -84,7 +89,7 @@ def render_text(words: list, new_lines: bool, max_lines: int) -> None:
             ui.display.text(offset_x, offset_y, span, font, fg, bg)
             ui.display.text(offset_x + width, offset_y, split, ui.BOLD, ui.GREY, bg)
             # line break
-            if offset_y >= OFFSET_Y_MAX:
+            if offset_y >= offset_y_max:
                 return
             offset_x = TEXT_MARGIN_LEFT
             offset_y += TEXT_LINE_HEIGHT
@@ -97,7 +102,7 @@ def render_text(words: list, new_lines: bool, max_lines: int) -> None:
 
         if new_lines and has_next_word:
             # line break
-            if offset_y >= OFFSET_Y_MAX:
+            if offset_y >= offset_y_max:
                 ui.display.text(offset_x, offset_y, "...", ui.BOLD, ui.GREY, bg)
                 return
             offset_x = TEXT_MARGIN_LEFT
