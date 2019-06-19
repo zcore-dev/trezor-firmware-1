@@ -1,22 +1,19 @@
 from trezor import ui
-from trezor.ui.button import Button, ButtonDefault
+from trezor.ui.button import Button
+from trezor.ui.text import LABEL_CENTER, Label
 
 
 class NumInput(ui.Control):
     def __init__(self, count=5, max_count=16, min_count=1):
+        self.count = count
         self.max_count = max_count
         self.min_count = min_count
-
-        class ButtonLabel(ButtonDefault):
-            class disabled(ButtonDefault.normal):
-                bg_color = ui.BG
 
         self.minus = Button(ui.grid(3), "-")
         self.minus.on_click = self.on_minus
         self.plus = Button(ui.grid(5), "+")
         self.plus.on_click = self.on_plus
-        self.text = Button(ui.grid(4), "", ButtonLabel)
-        self.text.disable()
+        self.text = Label(ui.grid(4), "", LABEL_CENTER, ui.BOLD)
 
         self.edit(count)
 
@@ -34,6 +31,8 @@ class NumInput(ui.Control):
     def edit(self, count):
         count = max(count, self.min_count)
         count = min(count, self.max_count)
+        if self.count != count:
+            self.on_change(count)
         self.count = count
         self.text.content = str(count)
         self.text.repaint = True
@@ -45,3 +44,6 @@ class NumInput(ui.Control):
             self.plus.disable()
         else:
             self.plus.enable()
+
+    def on_change(self, count):
+        pass

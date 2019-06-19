@@ -1,11 +1,12 @@
 from trezor import res, ui
 from trezor.ui.button import Button, ButtonConfirm
 from trezor.ui.confirm import CONFIRMED
-from trezor.ui.text import render_text, TEXT_MARGIN_LEFT, TEXT_LINE_HEIGHT
+from trezor.ui.text import TEXT_LINE_HEIGHT, TEXT_MARGIN_LEFT, render_text
 
 
 class DefaultInfoConfirm:
 
+    fg_color = ui.LIGHT_GREY
     bg_color = ui.BLACKISH
 
     class button(ButtonConfirm):
@@ -38,6 +39,7 @@ class InfoConfirm(ui.Layout):
     def on_render(self):
         if self.repaint:
             x, y, w, h = self.panel_area
+            fg_color = self.style.fg_color
             bg_color = self.style.bg_color
 
             # render the background panel
@@ -51,6 +53,7 @@ class InfoConfirm(ui.Layout):
                 offset_y=y + TEXT_LINE_HEIGHT,
                 offset_x=x + TEXT_MARGIN_LEFT - ui.VIEWX,
                 offset_x_max=x + w - ui.VIEWX,
+                fg=fg_color,
                 bg=bg_color,
             )
 
