@@ -195,6 +195,7 @@ from .PinMatrixRequest import PinMatrixRequest
 from .Ping import Ping
 from .PublicKey import PublicKey
 from .RecoveryDevice import RecoveryDevice
+from .RecoveryDeviceInProgress import RecoveryDeviceInProgress
 from .ResetDevice import ResetDevice
 from .RippleAddress import RippleAddress
 from .RippleGetAddress import RippleGetAddress
