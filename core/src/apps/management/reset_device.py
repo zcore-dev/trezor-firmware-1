@@ -7,8 +7,8 @@ from trezor.messages.EntropyRequest import EntropyRequest
 from trezor.messages.Success import Success
 from trezor.pin import pin_to_int
 from trezor.ui.mnemonic import MnemonicKeyboard
-from trezor.ui.scroll import Paginated
 from trezor.ui.num_pad import NumPad
+from trezor.ui.scroll import Paginated
 from trezor.ui.text import Text
 from trezor.utils import chunks
 
@@ -66,7 +66,9 @@ async def reset_device(ctx, msg):
 
     # write settings and mnemonic into storage
     storage.load_settings(label=msg.label, use_passphrase=msg.passphrase_protection)
-    secret = module.process_all(mnemonics)
+    # we store secret as mnemonic words in BIP-39
+    if module == mnemonic.bip39:
+        secret = " ".join(mnemonics[0]).encode()
     module.store(secret=secret, needs_backup=msg.skip_backup, no_backup=msg.no_backup)
 
     # show success message

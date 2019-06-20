@@ -46,11 +46,11 @@ def module_from_words_count(count: int):
 
 
 def _start_progress():
-    ui.backlight_slide_sync(ui.BACKLIGHT_DIM)
+    ui.backlight_fade(ui.BACKLIGHT_DIM)
     ui.display.clear()
     ui.header("Please wait")
     ui.display.refresh()
-    ui.backlight_slide_sync(ui.BACKLIGHT_NORMAL)
+    ui.backlight_fade(ui.BACKLIGHT_NORMAL)
 
 
 def _render_progress(progress: int, total: int):

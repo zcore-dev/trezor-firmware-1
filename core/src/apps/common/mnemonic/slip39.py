@@ -2,51 +2,74 @@ from trezor.crypto import slip39
 
 from apps.common import mnemonic, storage
 
+_DEFAULT_ITERATION_EXPONENT = 0
 
-def generate(secret: bytes, count: int = None, threshold: int = None):
+
+def generate(master_secret: bytes, count: int = None, threshold: int = None) -> list:
     """
-    Generates new Shamir backup for 'secret'.
+    Generates new Shamir backup for 'master_secret'.
     Multiple groups are not yet supported.
     """
-    return slip39.generate_mnemonics(1, [(threshold, count)], secret)[0]
+    identifier, group_mnemonics = slip39.generate_mnemonics(
+        1,
+        [(threshold, count)],
+        master_secret,
+        passphrase="",
+        iteration_exponent=_DEFAULT_ITERATION_EXPONENT,
+    )
+    storage.set_slip39_iteration_exponent(_DEFAULT_ITERATION_EXPONENT)
+    storage.set_slip39_identifier(identifier)
+    return group_mnemonics[0]
 
 
 def get_type():
     return mnemonic.TYPE_SLIP39
 
 
-def process_single(words: list) -> bytes:
+def process_single(mnemonic: str) -> bytes:
     """
     Receives single mnemonic and processes it.
     Returns None if more shares are needed.
     """
-    slip39share = _parse_share(words)
+    # TODO: this is quite ugly
+    identifier, iteration_exponent, _, _, _, index, threshold, value = slip39.decode_mnemonic(
+        mnemonic
+    )
+    if threshold == 1:
+        raise ValueError("Threshold equal to 1 is not allowed.")
+
     if not storage.is_slip39_in_progress():
-        _store_start(slip39share)
-        if slip39share.get_threshold() != 1:
-            return None
+        storage.set_slip39_in_progress(True)
+        storage.set_slip39_iteration_exponent(iteration_exponent)
+        storage.set_slip39_identifier(identifier)
+        storage.set_slip39_threshold(threshold)
+        storage.set_slip39_remaining(threshold - 1)
+        storage.set_slip39_words_count(len(mnemonic.split()))
+        storage.set_slip39_mnemonic(index, mnemonic)
+        return None
     else:
-        remaining = _store_next(slip39share)
+        if identifier != storage.get_slip39_identifier():
+            # TODO improve UX (tell user)
+            raise ValueError(
+                "Share identifiers do not match %s vs %s",
+                identifier,
+                storage.get_slip39_identifier(),
+            )
+        if storage.get_slip39_mnemonic(index):
+            # TODO improve UX (tell user)
+            raise ValueError("This mnemonic was already entered")
+        remaining = storage.get_slip39_remaining() - 1
+        storage.set_slip39_remaining(remaining)
+        storage.set_slip39_mnemonic(index, mnemonic)
         if remaining != 0:
             return None
 
     # combine shares and returns
-    print(storage.get_slip39_shares())
-    return _combine(storage.get_slip39_shares())
-
-
-def process_all(mnemonics: list):
-    """
-    Receives all mnemonics and processes
-    it into pre-master secret which is usually then store in the storage.
-    """
-    shares = []
-    for m in mnemonics:
-        s = _parse_share(m)
-        # TODO: check IDs, checksums etc.
-        shares.append(s.get_share())
-
-    return _combine(shares)
+    mnemonics = storage.get_slip39_mnemonics()
+    if len(mnemonics) != threshold:
+        raise ValueError("Some mnemonics are still missing.")
+    _, _, secret = slip39.combine_mnemonics(mnemonics)
+    return secret
 
 
 def store(secret: bytes, needs_backup: bool = False, no_backup: bool = False):
@@ -58,40 +81,10 @@ def restore() -> str:
     raise NotImplementedError()
 
 
-def check():
-    # TODO
-    return True
-
-
-def _combine(shares: list) -> bytes:
-    # TODO
-    return shares[0]
-
-
-def _store_start(s: Slip39Share):
-    storage.set_slip39_in_progress(True)
-    print(s.get_id())
-    storage.set_slip39_id(s.get_id())
-    storage.set_slip39_shares(s.get_share(), s.get_threshold(), s.get_threshold())
-    storage.set_slip39_remaining(s.get_threshold() - 1)
-    storage.set_slip39_threshold(s.get_threshold())
-
-
-def _store_next(s: Slip39Share):
-    if s.get_id() != storage.get_slip39_id():
-        raise ValueError(
-            "Share identifiers do not match %s vs %s",
-            s.get_id(),
-            storage.get_slip39_id(),
-        )
-    remaining = storage.get_slip39_remaining()
-    storage.set_slip39_shares(s.get_share(), s.get_threshold(), remaining)
-    remaining -= 1
-    storage.set_slip39_remaining(remaining)
-    return remaining
-
-
-def _parse_share(words: list):
-    # TODO validate checksum (here? should do crypto)
-    ind, t, id, s = slip39.parse(words)
-    return Slip39Share(ind, t, id, s)
+def get_seed(encrypted_master_secret: bytes, passphrase: str = ""):
+    mnemonic._start_progress()
+    identifier = storage.get_slip39_identifier()
+    iteration_exponent = storage.get_slip39_iteration_exponent()
+    return slip39.decrypt(
+        identifier, iteration_exponent, encrypted_master_secret, passphrase
+    )

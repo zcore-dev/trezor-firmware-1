@@ -1,8 +1,8 @@
 from trezor import wire
 from trezor.messages.Success import Success
 
-from apps.management.common import layout
 from apps.common import mnemonic, storage
+from apps.management.common import layout
 from apps.management.reset_device import (
     check_mnemonic,
     show_backup_warning,

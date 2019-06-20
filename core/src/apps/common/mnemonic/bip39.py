@@ -22,20 +22,12 @@ def get_type():
     return mnemonic.TYPE_BIP39
 
 
-def process_all(mnemonics: list) -> bytes:
-    """
-    Receives all mnemonics (just one in case of BIP-39) and processes
-    it into pre-master secret which is usually then store in the storage.
-    """
-    return " ".join(mnemonics[0]).encode()
-
-
-def process_single(words: list) -> bytes:
+def process_single(words: str) -> bytes:
     """
     Receives single mnemonic and processes it.
     Returns None if more shares are needed.
     """
-    return process_all([words])
+    return " ".join(words).encode()
 
 
 def store(secret: bytes, needs_backup: bool = False, no_backup: bool = False):

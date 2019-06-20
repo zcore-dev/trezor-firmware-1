@@ -45,7 +45,7 @@ async def recovery_device(ctx, msg):
             title = "Simulated recovery"
             text = Text(title, ui.ICON_RECOVERY)
             text.normal("Do you really want to", "check the recovery", "seed?")
-        await require_confirm(ctx, text, code=ProtectCall)
+        # await require_confirm(ctx, text, code=ProtectCall)
 
         if msg.dry_run:
             if config.has_pin():
@@ -56,15 +56,21 @@ async def recovery_device(ctx, msg):
                 raise wire.PinInvalid("PIN invalid")
 
         # ask for the number of words
-        wordcount = await request_wordcount(ctx, title)
+        # wordcount = await request_wordcount(ctx, title)
+        wordcount = 20
         mnemonic_module = mnemonic.module_from_words_count(wordcount)
     else:
         wordcount = storage.get_slip39_words_count()
         mnemonic_module = mnemonic.slip39
 
     # ask for mnemonic words one by one
-    words = await request_mnemonic(ctx, wordcount)
+    # words = await request_mnemonic(ctx, wordcount)
+    words = "revenue disaster academic acid belong desktop oasis practice ruin slavery artwork slow treat snake grin explain bulge harvest solution lungs"
+    # words = 'revenue disaster academic always dwarf wealthy duke slush smirk slow skin strategy aquatic scatter terminal brother galaxy tofu robin judicial'
     secret = mnemonic_module.process_single(words)
+    words = "revenue disaster academic axis apart random rhythm garden surprise silent member tenant greatest watch hormone tension mineral peasant round vegan"
+    secret = mnemonic_module.process_single(words)
+    print(storage.get_slip39_mnemonics())
     if secret is None:
         return RecoveryDeviceInProgress()
 
@@ -79,8 +85,6 @@ async def recovery_device(ctx, msg):
         newpin = await request_pin_confirm(ctx, cancellable=False)
     else:
         newpin = ""
-
-    secret = mnemonic.process([words], mnemonic.TYPE_BIP39)
 
     # dry run
     if msg.dry_run:
@@ -113,7 +117,7 @@ async def request_wordcount(ctx, title: str) -> int:
     return count
 
 
-async def request_mnemonic(ctx, count: int) -> list:
+async def request_mnemonic(ctx, count: int) -> str:
     await ctx.call(ButtonRequest(code=MnemonicInput), ButtonAck)
 
     words = []
@@ -125,4 +129,4 @@ async def request_mnemonic(ctx, count: int) -> list:
             word = await ctx.wait(keyboard)
         words.append(word)
 
-    return words
+    return words.join(" ")

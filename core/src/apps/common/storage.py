@@ -2,7 +2,7 @@ from micropython import const
 from ubinascii import hexlify
 
 from trezor import config
-from trezor.crypto import random
+from trezor.crypto import random, slip39
 
 from apps.common import cache
 
@@ -35,10 +35,16 @@ _ROTATION           = const(0x0F)  # int
 
 _SLIP39             = const(0x02)  # SLIP-39 namespace
 _SLIP39_IN_PROGRESS = const(0x00)  # bool
-_SLIP39_ID          = const(0x01)  # bytes
+_SLIP39_IDENTIFIER  = const(0x01)  # bytes
 _SLIP39_THRESHOLD   = const(0x02)  # int
 _SLIP39_REMAINING   = const(0x03)  # int
-_SLIP39_SHARES      = const(0x04)  # bytes
+_SLIP39_WORDS_COUNT = const(0x04)  # int
+_SLIP39_ITERATION_EXPONENT = const(0x05)  # int
+
+# Mnemonics stored during SLIP-39 recovery process.
+# Each mnemonic is stored under key = index.
+_SLIP39_MNEMONICS   = const(0x03)  # SLIP-39 mnemonics namespace
+
 # fmt: on
 
 
@@ -50,12 +56,12 @@ def is_slip39_in_progress():
     return _get_bool(_SLIP39, _SLIP39_IN_PROGRESS)
 
 
-def set_slip39_id(id: bytes):
-    config.set(_SLIP39, _SLIP39_ID, id)
+def set_slip39_identifier(identifier: int):
+    _set_uint16(_SLIP39, _SLIP39_IDENTIFIER, identifier)
 
 
-def get_slip39_id() -> bytes:
-    return config.get(_SLIP39, _SLIP39_ID)
+def get_slip39_identifier() -> int:
+    return _get_uint16(_SLIP39, _SLIP39_IDENTIFIER)
 
 
 def set_slip39_threshold(threshold: int):
@@ -74,51 +80,50 @@ def get_slip39_remaining() -> int:
     return _get_uint8(_SLIP39, _SLIP39_REMAINING)
 
 
+def set_slip39_words_count(count: int):
+    _set_uint8(_SLIP39, _SLIP39_WORDS_COUNT, count)
+
+
 def get_slip39_words_count() -> int:
-    if not is_slip39_in_progress():
-        raise RuntimeError("SLIP 39 not in progress")
-    shares = get_slip39_shares()
-    if len(shares[0]) == 16:
-        return 20
-    elif len(shares[0]) == 32:
-        return 33
-    else:
-        raise RuntimeError("Unknown SLIP-39 share length")
+    return _get_uint8(_SLIP39, _SLIP39_WORDS_COUNT)
 
 
-def set_slip39_shares(data: bytes, threshold: int, remaining: int):
-    current = [bytes([0xFF] * len(data))] * threshold
-    index = threshold - remaining
-    current[index] = data
-
-    for i, s in enumerate(get_slip39_shares()):
-        current[i] = s
-
-    print("STORING:")
-    to_store = b"".join(current)
-    print(hexlify(to_store))
-    config.set(_SLIP39, _SLIP39_SHARES, to_store, True)
+def set_slip39_iteration_exponent(exponent: int):
+    # TODO: check if not > 5 bits
+    _set_uint8(_SLIP39, _SLIP39_ITERATION_EXPONENT, exponent)
 
 
-def get_slip39_shares() -> list:
-    shares = config.get(_SLIP39, _SLIP39_SHARES, True)
-    if not shares:
-        return []
-    length = len(shares) // get_slip39_threshold()
-    s = []
-    for i in range(0, len(shares), length):
-        share = shares[i : i + length]
-        if share != b"\xFF" * 16:
-            s.append(share)
-    return s
+def get_slip39_iteration_exponent() -> int:
+    return _get_uint8(_SLIP39, _SLIP39_ITERATION_EXPONENT)
+
+
+def set_slip39_mnemonic(index: int, mnemonic: str):
+    config.set(_SLIP39_MNEMONICS, index, mnemonic.encode())
+
+
+def get_slip39_mnemonic(index: int) -> str:
+    m = config.get(_SLIP39_MNEMONICS, index)
+    if m:
+        return m.decode()
+    return False
+
+
+def get_slip39_mnemonics() -> list:
+    mnemonics = []
+    for index in range(0, slip39.MAX_SHARE_COUNT):
+        m = get_slip39_mnemonic(index)
+        if m:
+            mnemonics.append(m)
+    return mnemonics
 
 
 def clear_slip39_data():
     config.delete(_SLIP39, _SLIP39_IN_PROGRESS)
-    config.delete(_SLIP39, _SLIP39_ID)
     config.delete(_SLIP39, _SLIP39_REMAINING)
     config.delete(_SLIP39, _SLIP39_THRESHOLD)
-    config.delete(_SLIP39, _SLIP39_SHARES)
+    config.delete(_SLIP39, _SLIP39_WORDS_COUNT)
+    for index in (0, slip39.MAX_SHARE_COUNT):
+        config.delete(_SLIP39_MNEMONICS, index)
 
 
 def _set_bool(app: int, key: int, value: bool, public: bool = False) -> None:
@@ -137,6 +142,17 @@ def _set_uint8(app: int, key: int, val: int):
 
 
 def _get_uint8(app: int, key: int) -> int:
+    val = config.get(app, key)
+    if not val:
+        return None
+    return int.from_bytes(val, "big")
+
+
+def _set_uint16(app: int, key: int, val: int):
+    config.set(app, key, val.to_bytes(2, "big"))
+
+
+def _get_uint16(app: int, key: int) -> int:
     val = config.get(app, key)
     if not val:
         return None

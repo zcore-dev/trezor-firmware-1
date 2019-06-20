@@ -5,8 +5,8 @@ from trezor.crypto import random
 from trezor.messages import ButtonRequestType, MessageType
 from trezor.messages.ButtonRequest import ButtonRequest
 from trezor.ui.mnemonic import MnemonicKeyboard
-from trezor.ui.text import Text
 from trezor.ui.scroll import Paginated
+from trezor.ui.text import Text
 from trezor.utils import chunks, format_ordinal
 
 from apps.common.confirm import hold_to_confirm, require_confirm
@@ -26,9 +26,9 @@ async def show_mnemonics(ctx, mnemonics: list):
         while True:
             words = mnemonic.split()
             await show_mnemonic(ctx, words, i)
-            if await check_mnemonic(ctx, words):
-                break
-            await show_wrong_entry(ctx)
+            # if await check_mnemonic(ctx, words):
+            break
+            # await show_wrong_entry(ctx)
 
 
 async def show_warning(ctx):
@@ -63,6 +63,7 @@ async def show_mnemonic(ctx, words: list, position: int):
     paginated = Paginated(pages)
 
     if __debug__:
+
         def export_displayed_words():
             # export currently displayed mnemonic words into debuglink
             debug.reset_current_words = [w for _, w in words[paginated.page]]

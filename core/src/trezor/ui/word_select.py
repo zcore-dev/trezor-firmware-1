@@ -3,6 +3,7 @@ from trezor.ui.button import Button
 
 # todo improve?
 
+
 class WordSelector(ui.Layout):
     def __init__(self, content):
         self.content = content
