@@ -1,17 +1,11 @@
-from ubinascii import hexlify
-
-from trezor import config, ui, wire
+from trezor import config, wire
 from trezor.crypto import hashlib, random
-from trezor.messages import ButtonRequestType, MessageType
+from trezor.messages import MessageType
 from trezor.messages.EntropyRequest import EntropyRequest
 from trezor.messages.Success import Success
 from trezor.pin import pin_to_int
-from trezor.ui.num_pad import NumPad
-from trezor.ui.text import Text
-from trezor.utils import chunks
 
 from apps.common import mnemonic, storage
-from apps.common.confirm import require_confirm
 from apps.management.change_pin import request_pin_confirm
 from apps.management.common import layout
 
@@ -20,10 +14,11 @@ if __debug__:
 
 
 async def reset_device(ctx, msg):
-    _validate(msg, msg.slip39)
+    # validate parameters and device state
+    _validate_reset_device(msg)
 
-    # make sure use knows he's setting up a new wallet
-    await _show_reset_warning(ctx, msg.slip39)
+    # make sure user knows he's setting up a new wallet
+    await layout.show_reset_device_warning(ctx, msg.slip39)
 
     # request new PIN
     if msg.pin_protection:
@@ -31,113 +26,95 @@ async def reset_device(ctx, msg):
     else:
         newpin = ""
 
-    if msg.slip39:
-        module = mnemonic.slip39
-        shares_count, threshold = await _ask_counts(ctx)
-
-    else:
-        module = mnemonic.bip39
-        shares_count, threshold = None, None
-
     # generate and display internal entropy
     int_entropy = random.bytes(32)
     if __debug__:
         debug.reset_internal_entropy = int_entropy
     if msg.display_random:
-        await _show_entropy(ctx, int_entropy)
+        await layout.show_internal_entropy(ctx, int_entropy)
 
-    # request external entropy and compute mnemonic
-    ent_ack = await ctx.call(EntropyRequest(), MessageType.EntropyAck)
-    entropy = _mix_entropy(int_entropy, ent_ack.entropy)
-    secret = entropy[: msg.strength // 8]
+    # request external entropy and compute the master secret
+    entropy_ack = await ctx.call(EntropyRequest(), MessageType.EntropyAck)
+    ext_entropy = entropy_ack.entropy
+    secret = _compute_secret_from_entropy(int_entropy, ext_entropy, msg.strength)
 
-    mnemonics = module.generate(secret, shares_count, threshold)
-    print("generated mnemonics:")
-    print(mnemonics)
+    # should we back up the wallet now?
+    if not msg.no_backup and not msg.skip_backup:
+        if not await layout.confirm_backup(ctx):
+            if not await layout.confirm_backup_again(ctx):
+                msg.skip_backup = True
 
-    if not msg.skip_backup and not msg.no_backup:
-        await layout.show_mnemonics(ctx, mnemonics, msg.slip39)
+    # generate and display backup information for the master secret
+    if not msg.no_backup and not msg.skip_backup:
+        if msg.slip39:
+            await backup_slip39_wallet(ctx, secret)
+        else:
+            await backup_bip39_wallet(ctx, secret)
 
     # write PIN into storage
     if not config.change_pin(pin_to_int(""), pin_to_int(newpin)):
         raise wire.ProcessError("Could not change PIN")
 
-    # write settings and mnemonic into storage
+    # write settings and master secret into storage
     storage.load_settings(label=msg.label, use_passphrase=msg.passphrase_protection)
-    # we store secret as mnemonic words in BIP-39
-    if module == mnemonic.bip39:
-        secret = " ".join(mnemonics[0]).encode()
+    if msg.slip39:
+        module = mnemonic.slip39
+    else:
+        module = mnemonic.bip39
     module.store(secret=secret, needs_backup=msg.skip_backup, no_backup=msg.no_backup)
 
-    # show success message
-    if not msg.skip_backup and not msg.no_backup:
-        await _show_success(ctx)
+    # if we backed up the wallet, show success message
+    if not msg.no_backup and not msg.skip_backup:
+        await layout.show_backup_success(ctx)
 
     return Success(message="Initialized")
 
 
-def _validate(msg, is_slip39):
-    # validate parameters and device state
+async def backup_slip39_wallet(ctx, secret: bytes):
+    # get number of shares
+    await layout.show_checklist_set_shares(ctx)
+    shares_count = await layout.prompt_number_of_shares(ctx)
+
+    # get threshold
+    await layout.show_checklist_set_threshold(ctx, shares_count)
+    threshold = await layout.prompt_threshold(ctx, shares_count)
+
+    # generate the mnemonics
+    mnemonics = mnemonic.slip39.generate(secret, shares_count, threshold)
+
+    # show and confirm individual shares
+    await layout.show_checklist_show_shares(ctx, shares_count, threshold)
+    await layout.show_and_confirm_shares(ctx, mnemonics)
+
+
+async def backup_bip39_wallet(ctx, secret: bytes):
+    # TODO
+    pass
+
+
+def _validate_reset_device(msg):
     if msg.strength not in (128, 256):
-        if is_slip39:
+        if msg.slip39:
             raise wire.ProcessError("Invalid strength (has to be 128 or 256 bits)")
         elif msg.strength != 192:
             raise wire.ProcessError("Invalid strength (has to be 128, 192 or 256 bits)")
-
     if msg.display_random and (msg.skip_backup or msg.no_backup):
         raise wire.ProcessError("Can't show internal entropy when backup is skipped")
     if storage.is_initialized():
         raise wire.UnexpectedMessage("Already initialized")
-    if (msg.skip_backup or msg.no_backup) and is_slip39:
+    if (msg.skip_backup or msg.no_backup) and msg.slip39:
         raise wire.ProcessError("Both no/skip backup flag and Shamir SLIP-39 required.")
 
 
-def _mix_entropy(int_entropy: bytes, ext_entropy: bytes) -> bytes:
+def _compute_secret_from_entropy(
+    int_entropy: bytes, ext_entropy: bytes, strength_in_bytes: int
+) -> bytes:
+    # combine internal and external entropy
     ehash = hashlib.sha256()
     ehash.update(int_entropy)
     ehash.update(ext_entropy)
-    return ehash.digest()
-
-
-async def _show_reset_warning(ctx, slip39=False):
-    text = Text("Create a new wallet", ui.ICON_RESET, new_lines=False)
-    text.normal("Do you want to create")
-    text.br()
-    if slip39:
-        text.normal("a new SLIP-39 wallet?")
-    else:
-        text.normal("a new wallet?")
-    text.br()
-    text.br_half()
-    text.normal("By continuing you agree")
-    text.br()
-    text.normal("to")
-    text.bold("https://trezor.io/tos")
-    await require_confirm(ctx, text, code=ButtonRequestType.ResetDevice)
-
-
-async def _ask_counts(ctx):
-    shares = await NumPad("Set number of shares", 1, 32)
-    threshold = await NumPad("Set threshold", 1, shares + 1)
-    return shares, threshold
-
-
-async def _show_entropy(ctx, entropy: bytes):
-    entropy_str = hexlify(entropy).decode()
-    lines = chunks(entropy_str, 16)
-    text = Text("Internal entropy", ui.ICON_RESET)
-    text.mono(*lines)
-    await require_confirm(ctx, text, ButtonRequestType.ResetDevice)
-
-
-async def _show_success(ctx):
-    text = Text("Backup is done!", ui.ICON_CONFIRM, ui.GREEN)
-    text.normal(
-        "Never make a digital",
-        "copy of your recovery",
-        "seed and never upload",
-        "it online!",
-    )
-    await require_confirm(
-        ctx, text, ButtonRequestType.ResetDevice, confirm="Finish setup", cancel=None
-    )
+    entropy = ehash.digest()
+    # take a required number of bytes
+    strength = strength_in_bytes // 8
+    secret = entropy[:strength]
+    return secret
