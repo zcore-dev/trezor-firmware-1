@@ -1,19 +1,17 @@
 from ubinascii import hexlify
 
-from trezor import config, ui, wire, workflow
-from trezor.crypto import bip39, hashlib, random
+from trezor import config, ui, wire
+from trezor.crypto import hashlib, random
 from trezor.messages import ButtonRequestType, MessageType
 from trezor.messages.EntropyRequest import EntropyRequest
 from trezor.messages.Success import Success
 from trezor.pin import pin_to_int
-from trezor.ui.mnemonic_bip39 import Bip39Keyboard
 from trezor.ui.num_pad import NumPad
-from trezor.ui.scroll import Paginated
 from trezor.ui.text import Text
 from trezor.utils import chunks
 
 from apps.common import mnemonic, storage
-from apps.common.confirm import hold_to_confirm, require_confirm
+from apps.common.confirm import require_confirm
 from apps.management.change_pin import request_pin_confirm
 from apps.management.common import layout
 

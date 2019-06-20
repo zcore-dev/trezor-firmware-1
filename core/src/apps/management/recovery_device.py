@@ -1,10 +1,6 @@
 from trezor import config, ui, wire
 from trezor.messages.ButtonRequest import ButtonRequest
-from trezor.messages.ButtonRequestType import (
-    MnemonicInput,
-    MnemonicWordCount,
-    ProtectCall,
-)
+from trezor.messages.ButtonRequestType import MnemonicInput, MnemonicWordCount
 from trezor.messages.MessageType import ButtonAck
 from trezor.messages.RecoveryDeviceInProgress import RecoveryDeviceInProgress
 from trezor.messages.Success import Success
@@ -15,7 +11,6 @@ from trezor.ui.word_select import WordSelector
 from trezor.utils import format_ordinal
 
 from apps.common import mnemonic, storage
-from apps.common.confirm import require_confirm
 from apps.homescreen.homescreen import display_homescreen
 from apps.management.change_pin import request_pin_ack, request_pin_confirm
 

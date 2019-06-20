@@ -2,8 +2,7 @@ from micropython import const
 
 from trezor import ui
 from trezor.crypto import random
-from trezor.messages import ButtonRequestType, MessageType
-from trezor.messages.ButtonRequest import ButtonRequest
+from trezor.messages import ButtonRequestType
 from trezor.ui.mnemonic_bip39 import Bip39Keyboard
 from trezor.ui.mnemonic_slip39 import Slip39Keyboard
 from trezor.ui.scroll import Paginated

@@ -3,12 +3,7 @@ from trezor.messages.Success import Success
 
 from apps.common import mnemonic, storage
 from apps.management.common import layout
-from apps.management.reset_device import (
-    check_mnemonic,
-    show_backup_warning,
-    show_mnemonic,
-    show_wrong_entry,
-)
+from apps.management.reset_device import show_backup_warning
 
 
 async def backup_device(ctx, msg):
