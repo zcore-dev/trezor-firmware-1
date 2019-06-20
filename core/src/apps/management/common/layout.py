@@ -4,7 +4,8 @@ from trezor import ui
 from trezor.crypto import random
 from trezor.messages import ButtonRequestType, MessageType
 from trezor.messages.ButtonRequest import ButtonRequest
-from trezor.ui.mnemonic import MnemonicKeyboard
+from trezor.ui.mnemonic_bip39 import Bip39Keyboard
+from trezor.ui.mnemonic_slip39 import Slip39Keyboard
 from trezor.ui.scroll import Paginated
 from trezor.ui.text import Text
 from trezor.utils import chunks, format_ordinal
@@ -15,7 +16,7 @@ if __debug__:
     from apps import debug
 
 
-async def show_mnemonics(ctx, mnemonics: list):
+async def show_mnemonics(ctx, mnemonics: list, slip39=False):
     # require confirmation of the mnemonic safety
     await show_warning(ctx)
 
@@ -26,7 +27,7 @@ async def show_mnemonics(ctx, mnemonics: list):
         while True:
             words = mnemonic.split()
             await show_mnemonic(ctx, words, i)
-            # if await check_mnemonic(ctx, words):
+            # if await check_mnemonic(ctx, words, slip39):
             break
             # await show_wrong_entry(ctx)
 
@@ -84,24 +85,27 @@ def get_mnemonic_page(words: list, position: int):
     return text
 
 
-async def check_mnemonic(ctx, words: list) -> bool:
+async def check_mnemonic(ctx, words: list, slip39=False) -> bool:
     # check a word from the first half
     index = random.uniform(len(words) // 2)
-    if not await check_word(ctx, words, index):
+    if not await check_word(ctx, words, index, slip39):
         return False
 
     # check a word from the second half
     index = random.uniform(len(words) // 2) + len(words) // 2
-    if not await check_word(ctx, words, index):
+    if not await check_word(ctx, words, index, slip39):
         return False
 
     return True
 
 
-async def check_word(ctx, words: list, index: int):
+async def check_word(ctx, words: list, index: int, slip39=False):
     if __debug__:
         debug.reset_word_index = index
-    keyboard = MnemonicKeyboard("Type the %s word:" % format_ordinal(index + 1))
+    if slip39:
+        keyboard = Slip39Keyboard("Type the %s word:" % format_ordinal(index + 1))
+    else:
+        keyboard = Bip39Keyboard("Type the %s word:" % format_ordinal(index + 1))
     if __debug__:
         result = await ctx.wait(keyboard, debug.input_signal)
     else:

@@ -9,7 +9,7 @@ from trezor.messages.MessageType import ButtonAck
 from trezor.messages.RecoveryDeviceInProgress import RecoveryDeviceInProgress
 from trezor.messages.Success import Success
 from trezor.pin import pin_to_int
-from trezor.ui.mnemonic import MnemonicKeyboard
+from trezor.ui.mnemonic_bip39 import Bip39Keyboard
 from trezor.ui.text import Text
 from trezor.ui.word_select import WordSelector
 from trezor.utils import format_ordinal
@@ -122,7 +122,7 @@ async def request_mnemonic(ctx, count: int) -> str:
 
     words = []
     for i in range(count):
-        keyboard = MnemonicKeyboard("Type the %s word:" % format_ordinal(i + 1))
+        keyboard = Bip39Keyboard("Type the %s word:" % format_ordinal(i + 1))
         if __debug__:
             word = await ctx.wait(keyboard, input_signal)
         else:

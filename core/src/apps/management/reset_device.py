@@ -6,7 +6,7 @@ from trezor.messages import ButtonRequestType, MessageType
 from trezor.messages.EntropyRequest import EntropyRequest
 from trezor.messages.Success import Success
 from trezor.pin import pin_to_int
-from trezor.ui.mnemonic import MnemonicKeyboard
+from trezor.ui.mnemonic_bip39 import Bip39Keyboard
 from trezor.ui.num_pad import NumPad
 from trezor.ui.scroll import Paginated
 from trezor.ui.text import Text
@@ -58,7 +58,7 @@ async def reset_device(ctx, msg):
     print(mnemonics)
 
     if not msg.skip_backup and not msg.no_backup:
-        await layout.show_mnemonics(ctx, mnemonics)
+        await layout.show_mnemonics(ctx, mnemonics, msg.slip39)
 
     # write PIN into storage
     if not config.change_pin(pin_to_int(""), pin_to_int(newpin)):

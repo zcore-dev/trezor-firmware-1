@@ -1,23 +1,22 @@
 from trezor import io, loop, res, ui
-from trezor.crypto import slip39
+from trezor.crypto import bip39
 from trezor.ui import display
 from trezor.ui.button import Button, ButtonClear, ButtonMono, ButtonMonoConfirm
 
 
-def check_mask(mask: int, index: int) -> bool:
-    return bool((1 << (index - 1)) & mask)
-
-
-# TODO: ask UX if we want to finish sooner than 4 words
-# example: 'hairy'
-def _is_final(content: str) -> bool:
-    return len(content) > 3
+def compute_mask(text: str) -> int:
+    mask = 0
+    for c in text:
+        shift = ord(c) - 97  # ord('a') == 97
+        if shift < 0:
+            continue
+        mask |= 1 << shift
+    return mask
 
 
 class KeyButton(Button):
-    def __init__(self, area, content, keyboard, index):
+    def __init__(self, area, content, keyboard):
         self.keyboard = keyboard
-        self.index = index
         super().__init__(area, content)
 
     def on_click(self):
@@ -28,24 +27,28 @@ class InputButton(Button):
     def __init__(self, area, content, word):
         super().__init__(area, content)
         self.word = word
-        self.pending_button = None
-        self.pending_index = None
+        self.pending = False  # should we draw the pending marker?
         self.icon = None  # rendered icon
         self.disable()
 
-    def edit(self, content, word, pending_button, pending_index):
+    def edit(self, content, word, pending):
         self.word = word
         self.content = content
-        self.pending_button = pending_button
-        self.pending_index = pending_index
+        self.pending = pending
         self.repaint = True
         if word:
-            self.enable()
-            self.normal_style = ButtonMonoConfirm.normal
-            self.active_style = ButtonMonoConfirm.active
-            self.icon = ui.ICON_CONFIRM
+            if content == word:  # confirm button
+                self.enable()
+                self.normal_style = ButtonMonoConfirm.normal
+                self.active_style = ButtonMonoConfirm.active
+                self.icon = ui.ICON_CONFIRM
+            else:  # auto-complete button
+                self.enable()
+                self.normal_style = ButtonMono.normal
+                self.active_style = ButtonMono.active
+                self.icon = ui.ICON_CLICK
         else:  # disabled button
-            self.disabled_style = ButtonMono.normal
+            self.disabled_style = ButtonMono.disabled
             self.disable()
             self.icon = None
 
@@ -57,19 +60,14 @@ class InputButton(Button):
         tx = ax + 24  # x-offset of the content
         ty = ay + ah // 2 + 8  # y-offset of the content
 
-        if not _is_final(self.content):
-            to_display = len(self.content) * "*"
-            if self.pending_button:
-                to_display = (
-                    to_display[:-1] + self.pending_button.content[self.pending_index]
-                )
-        else:
-            to_display = self.word
+        # entered content
+        display.text(tx, ty, self.content, text_style, fg_color, bg_color)
+        # word suggestion
+        suggested_word = self.word[len(self.content) :]
+        width = display.text_width(self.content, text_style)
+        display.text(tx + width, ty, suggested_word, text_style, ui.GREY, bg_color)
 
-        display.text(tx, ty, to_display, text_style, fg_color, bg_color)
-
-        if self.pending_button and not _is_final(self.content):
-            width = display.text_width(to_display, text_style)
+        if self.pending:
             pw = display.text_width(self.content[-1:], text_style)
             px = tx + width - pw
             display.bar(px, ty + 2, pw + 1, 3, fg_color)
@@ -92,7 +90,7 @@ class Prompt(ui.Control):
             self.repaint = False
 
 
-class MnemonicKeyboard(ui.Layout):
+class Bip39Keyboard(ui.Layout):
     def __init__(self, prompt):
         self.prompt = Prompt(prompt)
 
@@ -104,14 +102,13 @@ class MnemonicKeyboard(ui.Layout):
         self.input.on_click = self.on_input_click
 
         self.keys = [
-            KeyButton(ui.grid(i + 3, n_y=4), k, self, i + 1)
+            KeyButton(ui.grid(i + 3, n_y=4), k, self)
             for i, k in enumerate(
-                ("ab", "cd", "ef", "ghij", "klm", "nopq", "rs", "tuv", "wxyz")
+                ("abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yz")
             )
         ]
         self.pending_button = None
         self.pending_index = 0
-        self.button_sequence = ""
 
     def dispatch(self, event: int, x: int, y: int):
         for btn in self.keys:
@@ -124,59 +121,59 @@ class MnemonicKeyboard(ui.Layout):
 
     def on_back_click(self):
         # Backspace was clicked, let's delete the last character of input.
-        self.button_sequence = self.button_sequence[:-1]
-        self.edit()
+        self.edit(self.input.content[:-1])
 
     def on_input_click(self):
-        # Input button was clicked. If the content matches the suggested word,
+        # Input button was clicked.  If the content matches the suggested word,
         # let's confirm it, otherwise just auto-complete.
-        result = self.input.word
-        if _is_final(self.input.content):
-            self.button_sequence = ""
-            self.edit()
-            self.on_confirm(result)
+        content = self.input.content
+        word = self.input.word
+        if word and word == content:
+            self.edit("")
+            self.on_confirm(word)
+        else:
+            self.edit(word)
 
-    def on_key_click(self, btn: KeyButton):
+    def on_key_click(self, btn: Button):
         # Key button was clicked.  If this button is pending, let's cycle the
         # pending character in input.  If not, let's just append the first
         # character.
         if self.pending_button is btn:
             index = (self.pending_index + 1) % len(btn.content)
+            content = self.input.content[:-1] + btn.content[index]
         else:
             index = 0
-            self.button_sequence += str(btn.index)
-        self.edit(btn, index)
+            content = self.input.content + btn.content[0]
+        self.edit(content, btn, index)
 
     def on_timeout(self):
-        # Timeout occurred. Let's redraw to draw asterisks.
-        self.edit()
+        # Timeout occurred.  If we can auto-complete current input, let's just
+        # reset the pending marker.  If not, input is invalid, let's backspace
+        # the last character.
+        if self.input.word:
+            self.edit(self.input.content)
+        else:
+            self.edit(self.input.content[:-1])
 
     def on_confirm(self, word):
         # Word was confirmed by the user.
         raise ui.Result(word)
 
-    def edit(self, button: KeyButton = None, index: int = 0):
+    def edit(self, content: str, button: KeyButton = None, index: int = 0):
         self.pending_button = button
         self.pending_index = index
 
         # find the completions
-        mask = 0
-        word = ""
-        if _is_final(self.button_sequence):
-            word = slip39.button_sequence_to_word(self.button_sequence)
-        else:
-            mask = slip39.compute_mask(self.button_sequence)
+        pending = button is not None
+        word = bip39.find_word(content) or ""
+        mask = bip39.complete_word(content)
 
         # modify the input state
-        self.input.edit(
-            self.button_sequence, word, self.pending_button, self.pending_index
-        )
+        self.input.edit(content, word, pending)
 
         # enable or disable key buttons
         for btn in self.keys:
-            if (not _is_final(self.button_sequence) and btn is button) or check_mask(
-                mask, btn.index
-            ):
+            if btn is button or compute_mask(btn.content) & mask:
                 btn.enable()
             else:
                 btn.disable()
