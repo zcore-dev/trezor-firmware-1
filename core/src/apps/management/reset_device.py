@@ -72,24 +72,24 @@ async def reset_device(ctx, msg):
 
 async def backup_slip39_wallet(ctx, secret: bytes):
     # get number of shares
-    await layout.show_checklist_set_shares(ctx)
-    shares_count = await layout.prompt_number_of_shares(ctx)
+    await layout.slip39_show_checklist_set_shares(ctx)
+    shares_count = await layout.slip39_prompt_number_of_shares(ctx)
 
     # get threshold
-    await layout.show_checklist_set_threshold(ctx, shares_count)
-    threshold = await layout.prompt_threshold(ctx, shares_count)
+    await layout.slip39_show_checklist_set_threshold(ctx, shares_count)
+    threshold = await layout.slip39_prompt_threshold(ctx, shares_count)
 
     # generate the mnemonics
     mnemonics = mnemonic.slip39.generate(secret, shares_count, threshold)
 
     # show and confirm individual shares
-    await layout.show_checklist_show_shares(ctx, shares_count, threshold)
-    await layout.show_and_confirm_shares(ctx, mnemonics)
+    await layout.slip39_show_checklist_show_shares(ctx, shares_count, threshold)
+    await layout.slip39_show_and_confirm_shares(ctx, mnemonics)
 
 
 async def backup_bip39_wallet(ctx, secret: bytes):
-    # TODO
-    pass
+    mnemonics = mnemonic.bip39.generate(secret)
+    await layout.bip39_show_and_confirm_mnemonic(ctx, mnemonics[0])
 
 
 def _validate_reset_device(msg):

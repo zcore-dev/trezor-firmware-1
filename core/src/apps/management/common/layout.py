@@ -4,7 +4,6 @@ from micropython import const
 from trezor import ui, utils
 from trezor.crypto import random
 from trezor.messages import ButtonRequestType
-from trezor.ui.mnemonic_bip39 import Bip39Keyboard
 from trezor.ui.button import Button, ButtonDefault
 from trezor.ui.checklist import Checklist
 from trezor.ui.info import InfoConfirm
@@ -95,27 +94,101 @@ async def confirm_backup_again(ctx):
     )
 
 
+async def _confirm_share_words(ctx, share_index, share_words):
+    numbered = list(enumerate(share_words))
+
+    # check a word from the first half
+    first_half = numbered[: len(numbered) // 2]
+    if not await _confirm_word(ctx, share_index, first_half):
+        return False
+
+    # check a word from the second half
+    second_half = numbered[len(numbered) // 2 :]
+    if not await _confirm_word(ctx, share_index, second_half):
+        return False
+
+    return True
+
+
+async def _confirm_word(ctx, share_index, numbered_share_words):
+    # TODO: duplicated words in the choice list
+
+    # shuffle the numbered seed half, slice off the choices we need
+    random.shuffle(numbered_share_words)
+    numbered_choices = numbered_share_words[: MnemonicWordSelect.NUM_OF_CHOICES]
+
+    # we always confirm the first (random) word index
+    checked_index, checked_word = numbered_choices[0]
+    if __debug__:
+        debug.reset_word_index = checked_index
+
+    # shuffle again so the confirmed word is not always the first choice
+    random.shuffle(numbered_choices)
+
+    # let the user pick a word
+    choices = [word for _, word in numbered_choices]
+    select = MnemonicWordSelect(choices, share_index, checked_index)
+    if __debug__:
+        selected_word = await ctx.wait(select, debug.input_signal)
+    else:
+        selected_word = await ctx.wait(select)
+
+    # confirm it is the correct one
+    return selected_word == checked_word
+
+
+async def _show_confirmation_success(ctx, share_index):
+    if share_index is None:
+        text = Text("Recovery seed", ui.ICON_RESET)
+        text.bold("Recovery seed")
+        text.bold("checked successfully.")
+    else:
+        text = Text("Recovery share #%s" % (share_index + 1), ui.ICON_RESET)
+        text.bold("Seed share #%s" % (share_index + 1))
+        text.bold("checked successfully.")
+        text.normal("Let's continue with")
+        text.normal("share #%s." % (share_index + 2))
+    return await confirm(
+        ctx, text, ButtonRequestType.ResetDevice, cancel=None, confirm="Continue"
+    )
+
+
+async def _show_confirmation_failure(ctx, share_index):
+    if share_index is None:
+        text = Text("Recovery seed", ui.ICON_WRONG, ui.RED)
+    else:
+        text = Text("Recovery share #%s" % (share_index + 1), ui.ICON_WRONG, ui.RED)
+    text.bold("You have entered")
+    text.bold("wrong seed word.")
+    text.bold("Please check again.")
+    await require_confirm(
+        ctx, text, ButtonRequestType.ResetDevice, confirm="Check again", cancel=None
+    )
+
+
 # BIP39
 # ===
 
 
-async def show_mnemonics(ctx, mnemonics: list):
+async def bip39_show_and_confirm_mnemonic(ctx, mnemonic: str):
+    words = mnemonic.split()
+
     # require confirmation of the mnemonic safety
-    await show_warning(ctx)
+    await _bip39_show_warning(ctx)
 
-    for i, mnemonic in enumerate(mnemonics, 1):
-        if len(mnemonics) == 1:
-            i = None
-        # show mnemonic and require confirmation of a random word
-        while True:
-            words = mnemonic.split()
-            await show_mnemonic(ctx, words, i)
-            # if await check_mnemonic(ctx, words, slip39):
-            break
-            # await show_wrong_entry(ctx)
+    while True:
+        # display paginated mnemonic on the screen
+        await _bip39_show_mnemonic(ctx, words)
+
+        # make the user confirm 2 words from the mnemonic
+        if await _confirm_share_words(ctx, None, words):
+            await _show_confirmation_success(ctx, None)
+            break  # this share is confirmed, go to next one
+        else:
+            await _show_confirmation_failure(ctx, None)
 
 
-async def show_warning(ctx):
+async def _bip39_show_warning(ctx):
     text = Text("Backup your seed", ui.ICON_NOCOPY)
     text.normal(
         "Never make a digital",
@@ -128,22 +201,14 @@ async def show_warning(ctx):
     )
 
 
-async def show_wrong_entry(ctx):
-    text = Text("Wrong entry!", ui.ICON_WRONG, icon_color=ui.RED)
-    text.normal("You have entered", "wrong seed word.", "Please check again.")
-    await require_confirm(
-        ctx, text, ButtonRequestType.ResetDevice, confirm="Check again", cancel=None
-    )
-
-
-async def show_mnemonic(ctx, words: list, position: int):
+async def _bip39_show_mnemonic(ctx, words: list):
     # split mnemonic words into pages
     PER_PAGE = const(4)
     words = list(enumerate(words))
     words = list(utils.chunks(words, PER_PAGE))
 
     # display the pages, with a confirmation dialog on the last one
-    pages = [_get_mnemonic_page(page, position) for page in words]
+    pages = [_get_mnemonic_page(page) for page in words]
     paginated = Paginated(pages)
 
     if __debug__:
@@ -158,39 +223,11 @@ async def show_mnemonic(ctx, words: list, position: int):
     await hold_to_confirm(ctx, paginated, ButtonRequestType.ResetDevice)
 
 
-def _get_mnemonic_page(words: list, position: int):
-    if position:
-        text = Text("Recovery seed %d" % position, ui.ICON_RESET)
-    else:
-        text = Text("Recovery seed", ui.ICON_RESET)
+def _get_mnemonic_page(words: list):
+    text = Text("Recovery seed", ui.ICON_RESET)
     for index, word in words:
         text.mono("%2d. %s" % (index + 1, word))
     return text
-
-
-async def check_mnemonic(ctx, words: list) -> bool:
-    # check a word from the first half
-    index = random.uniform(len(words) // 2)
-    if not await _check_word(ctx, words, index):
-        return False
-
-    # check a word from the second half
-    index = random.uniform(len(words) // 2) + len(words) // 2
-    if not await _check_word(ctx, words, index):
-        return False
-
-    return True
-
-
-async def _check_word(ctx, words: list, index: int):
-    if __debug__:
-        debug.reset_word_index = index
-    keyboard = Bip39Keyboard("Type the %s word:" % utils.format_ordinal(index + 1))
-    if __debug__:
-        result = await ctx.wait(keyboard, debug.input_signal)
-    else:
-        result = await ctx.wait(keyboard)
-    return result == words[index]
 
 
 # SLIP39
@@ -202,7 +239,7 @@ async def _check_word(ctx, words: list, index: int):
 # TODO: icons in checklist
 
 
-async def show_checklist_set_shares(ctx):
+async def slip39_show_checklist_set_shares(ctx):
     checklist = Checklist("Backup checklist", ui.ICON_RESET)
     checklist.add("Set number of shares")
     checklist.add("Set the threshold")
@@ -214,7 +251,7 @@ async def show_checklist_set_shares(ctx):
     )
 
 
-async def show_checklist_set_threshold(ctx, num_of_shares):
+async def slip39_show_checklist_set_threshold(ctx, num_of_shares):
     checklist = Checklist("Backup checklist", ui.ICON_RESET)
     checklist.add("Set number of shares")
     checklist.add("Set the threshold")
@@ -230,7 +267,7 @@ async def show_checklist_set_threshold(ctx, num_of_shares):
     )
 
 
-async def show_checklist_show_shares(ctx, num_of_shares, threshold):
+async def slip39_show_checklist_show_shares(ctx, num_of_shares, threshold):
     checklist = Checklist("Backup checklist", ui.ICON_RESET)
     checklist.add("Set number of shares")
     checklist.add("Set the threshold")
@@ -246,7 +283,7 @@ async def show_checklist_show_shares(ctx, num_of_shares, threshold):
     )
 
 
-async def prompt_number_of_shares(ctx):
+async def slip39_prompt_number_of_shares(ctx):
     count = 5
     max_count = 16
 
@@ -279,7 +316,7 @@ async def prompt_number_of_shares(ctx):
     return count
 
 
-async def prompt_threshold(ctx, num_of_shares):
+async def slip39_prompt_threshold(ctx, num_of_shares):
     count = num_of_shares // 2
     max_count = num_of_shares
 
@@ -311,11 +348,14 @@ async def prompt_threshold(ctx, num_of_shares):
     return count
 
 
-async def show_and_confirm_shares(ctx, shares):
+async def slip39_show_and_confirm_shares(ctx, shares):
     for index, share in enumerate(shares):
         share_words = share.split(" ")
         while True:
-            await _show_share_words(ctx, index, share_words)
+            # display paginated share on the screen
+            await _slip39_show_share_words(ctx, index, share_words)
+
+            # make the user confirm 2 words from the share
             if await _confirm_share_words(ctx, index, share_words):
                 await _show_confirmation_success(ctx, index)
                 break  # this share is confirmed, go to next one
@@ -323,10 +363,13 @@ async def show_and_confirm_shares(ctx, shares):
                 await _show_confirmation_failure(ctx, index)
 
 
-async def _show_share_words(ctx, share_index, share_words):
-    first, chunks, last = _split_share_into_pages(share_words)
+async def _slip39_show_share_words(ctx, share_index, share_words):
+    first, chunks, last = _slip39_split_share_into_pages(share_words)
 
-    header_title = "Recovery share #%s" % (share_index + 1)
+    if share_index is None:
+        header_title = "Recovery share #%s" % (share_index + 1)
+    else:
+        header_title = "Recovery seed"
     header_icon = ui.ICON_RESET
     pages = []  # ui page components
 
@@ -359,69 +402,26 @@ async def _show_share_words(ctx, share_index, share_words):
     # pagination
     paginated = Paginated(pages)
 
+    if __debug__:
+
+        def export_displayed_words():
+            # export currently displayed mnemonic words into debuglink
+            debug.reset_current_words = share_words[paginated.page]
+
+        paginated.on_change = export_displayed_words
+        export_displayed_words()
+
     # confirm the share
     await hold_to_confirm(ctx, paginated)  # TODO: customize the loader here
 
 
-async def _confirm_share_words(ctx, share_index, share_words):
-    numbered = list(enumerate(share_words))
-    # check a word from the first half
-    first_half = numbered[: len(numbered) // 2]
-    if not await _confirm_word(ctx, share_index, first_half):
-        return False
-    # check a word from the second half
-    second_half = numbered[len(numbered) // 2 :]
-    if not await _confirm_word(ctx, share_index, second_half):
-        return False
-    return True
-
-
-async def _confirm_word(ctx, share_index, numbered_share_words):
-    # TODO: duplicated words in the choice list
-    # shuffle the numbered seed half, slice off the choices we need
-    random.shuffle(numbered_share_words)
-    numbered_choices = numbered_share_words[: ShamirWordSelect.NUM_OF_CHOICES]
-    # we always confirm the first (random) word index
-    checked_index, checked_word = numbered_choices[0]
-    # shuffle again so the confirmed word is not always the first choice
-    random.shuffle(numbered_choices)
-    # take just the words
-    choices = [word for _, word in numbered_choices]
-    # let the user pick a word
-    select = ShamirWordSelect(choices, share_index, checked_index)
-    selected_word = await select
-    # confirm it is the correct one
-    return selected_word == checked_word
-
-
-def _split_share_into_pages(share_words):
+def _slip39_split_share_into_pages(share_words):
     share = list(enumerate(share_words))  # we need to keep track of the word indices
     first = share[:2]  # two words on the first page
     middle = share[2:-2]
     last = share[-2:]  # two words on the last page
     chunks = utils.chunks(middle, 4)  # 4 words on the middle pages
     return first, list(chunks), last
-
-
-async def _show_confirmation_success(ctx, share_index):
-    text = Text("Recovery share #%s" % (share_index + 1), ui.ICON_RESET)
-    text.bold("Seed share #%s" % (share_index + 1))
-    text.bold("checked successfully.")
-    text.normal("Let's continue with")
-    text.normal("share #%s." % (share_index + 2))
-    return await confirm(
-        ctx, text, ButtonRequestType.ResetDevice, cancel=None, confirm="Continue"
-    )
-
-
-async def _show_confirmation_failure(ctx, share_index):
-    text = Text("Recovery share #%s" % (share_index + 1), ui.ICON_RESET)
-    text.bold("You have entered")
-    text.bold("wrong seed word.")
-    text.bold("Please check again.")
-    await require_confirm(
-        ctx, text, ButtonRequestType.ResetDevice, confirm="Check again", cancel=None
-    )
 
 
 class ShamirNumInput(ui.Control):
@@ -472,7 +472,7 @@ class ShamirNumInput(ui.Control):
         self.repaint = True
 
 
-class ShamirWordSelect(ui.Layout):
+class MnemonicWordSelect(ui.Layout):
     NUM_OF_CHOICES = 3
 
     def __init__(self, words, share_index, word_index):
@@ -485,7 +485,10 @@ class ShamirWordSelect(ui.Layout):
             btn = Button(area, word)
             btn.on_click = self.select(word)
             self.buttons.append(btn)
-        self.text = Text("Recovery share #%s" % (share_index + 1))
+        if share_index is None:
+            self.text = Text("Recovery seed")
+        else:
+            self.text = Text("Recovery share #%s" % (share_index + 1))
         self.text.normal("Choose the %s word:" % utils.format_ordinal(word_index + 1))
 
     def dispatch(self, event, x, y):
