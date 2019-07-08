@@ -13,7 +13,7 @@ from trezor.ui.word_select import WordSelector
 from trezor.utils import format_ordinal
 
 from apps.common import mnemonic, storage
-from apps.common.confirm import require_confirm
+from apps.common.confirm import confirm, require_confirm
 from apps.homescreen.homescreen import display_homescreen
 from apps.management.change_pin import request_pin_ack, request_pin_confirm
 
@@ -102,7 +102,13 @@ async def recovery_device(ctx: wire.Context, msg: RecoveryDevice) -> Success:
 
     # dry run
     if msg.dry_run:
-        return mnemonic.dry_run(secret)
+        mnemonic.dry_run(secret)
+
+    # in case of slip39 dry run optionally check remaining shares
+    if mnemonic_module == mnemonic.slip39 and msg.dry_run:
+        show_extra_mnemonic(
+            ctx, wordcount, mnemonics, mnemonic_threshold, mnemonic_module
+        )
 
     # save into storage
     if msg.pin_protection:
@@ -134,7 +140,9 @@ async def request_wordcount(ctx: wire.Context, title: str) -> int:
     return count
 
 
-async def request_mnemonic(ctx: wire.Context, count: int, slip39: bool) -> str:
+async def request_mnemonic(
+    ctx: wire.Context, count: int, slip39: bool, mnemonics=None
+) -> str:
     await ctx.call(ButtonRequest(code=ButtonRequestType.MnemonicInput), ButtonAck)
 
     words = []
@@ -147,7 +155,15 @@ async def request_mnemonic(ctx: wire.Context, count: int, slip39: bool) -> str:
             word = await ctx.wait(keyboard, input_signal)
         else:
             word = await ctx.wait(keyboard)
-        words.append(word)
+        # check if share was previously added in case of slip39
+        if slip39 and mnemonics is not None and len(mnemonics) > 1 and i == 3:
+            for single_mnemonic in mnemonics:
+                if single_mnemonic[i] != word:
+                    words.append(word)
+                else:
+                    raise ValueError("Share already added")
+        else:
+            words.append(word)
 
     return " ".join(words)
 
@@ -189,4 +205,49 @@ async def show_remaining_slip39_mnemonics(
         text.normal("share.")
     await require_confirm(
         ctx, text, ButtonRequestType.ProtectCall, cancel=None, confirm="Continue"
+    )
+
+
+async def show_extra_mnemonic(
+    ctx, wordcount, mnemonics, mnemonic_threshold, mnemonic_module
+):
+    if await show_remaining_slip39_question(ctx):
+        try:
+            words = await request_mnemonic(ctx, wordcount, True, mnemonics)
+            mnemonics.append(words)
+        except ValueError:
+            if await show_share_already_added(ctx):
+                show_extra_mnemonic(
+                    ctx, wordcount, mnemonics, mnemonic_threshold, mnemonic_module
+                )
+            else:
+                return
+
+        check_mnemonics = mnemonics[-mnemonic_threshold:]
+        try:
+            secret = mnemonic_module.process_all(check_mnemonics)
+        except slip39.MnemonicError:
+            raise wire.ProcessError("Mnemonic is not valid")
+
+        compare_secret = mnemonic.dry_run(secret)
+        if isinstance(compare_secret, Success):
+            show_extra_mnemonic(
+                ctx, wordcount, mnemonics, mnemonic_threshold, mnemonic_module
+            )
+
+
+async def show_remaining_slip39_question(ctx):
+    text = Text("Dry run", ui.ICON_RECOVERY)
+    text.bold("Shares verified successfuly")
+    text.normal("would you like to check")
+    text.normal("the remaining shares?")
+    return await confirm(ctx, text, ButtonRequestType.ProtectCall, confirm="Yes")
+
+
+async def show_share_already_added(ctx):
+    text = Text("Dry run", ui.ICON_RECOVERY)
+    text.bold("Share already added")
+    text.normal("you already verified this share")
+    return await confirm(
+        ctx, text, ButtonRequestType.ProtectCall, cancel="Cancel", confirm="Retry"
     )
