@@ -60,3 +60,20 @@ test core unix monero:
   script:
     - cd core
     - pipenv run make test_emu_monero
+
+aftertest upload core unix:
+  stage: aftertest
+  variables:
+    DEPLOY_DIRECTORY: ${DEPLOY_BASE_DIR}/core/emulators/
+    DEPLOY_PATH: ${DEPLOY_BASE_DIR}/core/emulators/${CI_COMMIT_REF_NAME}/${date -I}-core-emu-${CI_COMMIT_SHORT_SHA}
+  when: manual
+  dependencies:
+    - build core unix frozen
+  script:
+    - echo "Deploying to server"
+    - echo ${DEPLOY_DIRECTORY}
+    - echo ${DEPLOY_PATH}
+    - mkdir -p ${DEPLOY_DIRECTORY}/${CI_COMMIT_REF_NAME}
+    - rsync --delete -va build/unix/micropython "${DEPLOY_PATH}"
+  tags:
+    - deploy
