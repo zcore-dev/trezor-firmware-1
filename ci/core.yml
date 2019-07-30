@@ -70,6 +70,7 @@ aftertest upload core unix:
   dependencies:
     - build core unix frozen
   script:
+    - cd core
     - echo "Deploying to server"
     - echo ${DEPLOY_DIRECTORY}
     - echo ${DEPLOY_PATH}
