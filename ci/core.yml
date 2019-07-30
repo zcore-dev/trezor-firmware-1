@@ -37,29 +37,29 @@ build core unix frozen:
     untracked: true
     expire_in: 1 day
 
-test core unix unit:
-  stage: test
-  dependencies:
-    - build core unix frozen
-  script:
-    - cd core
-    - pipenv run make test
+# test core unix unit:
+#   stage: test
+#   dependencies:
+#     - build core unix frozen
+#   script:
+#     - cd core
+#     - pipenv run make test
 
-test core unix device:
-  stage: test
-  dependencies:
-    - build core unix frozen
-  script:
-    - cd core
-    - pipenv run make test_emu
+# test core unix device:
+#   stage: test
+#   dependencies:
+#     - build core unix frozen
+#   script:
+#     - cd core
+#     - pipenv run make test_emu
 
-test core unix monero:
-  stage: test
-  dependencies:
-    - build core unix frozen
-  script:
-    - cd core
-    - pipenv run make test_emu_monero
+# test core unix monero:
+#   stage: test
+#   dependencies:
+#     - build core unix frozen
+#   script:
+#     - cd core
+#     - pipenv run make test_emu_monero
 
 aftertest upload core unix:
   stage: aftertest

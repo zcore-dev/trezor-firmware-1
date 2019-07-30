@@ -12,21 +12,21 @@ build legacy firmware:
     - pipenv run make -C bootloader
     - pipenv run make -C demo
 
-build legacy firmware debug:
-  stage: build
-  variables:
-    DEBUG_LINK: "1"
-  script:
-    - cd legacy
-    - pipenv run script/cibuild
+# build legacy firmware debug:
+#   stage: build
+#   variables:
+#     DEBUG_LINK: "1"
+#   script:
+#     - cd legacy
+#     - pipenv run script/cibuild
 
-build legacy firmware bitcoinonly:
-  stage: build
-  variables:
-    BITCOIN_ONLY: "1"
-  script:
-    - cd legacy
-    - pipenv run script/cibuild
+# build legacy firmware bitcoinonly:
+#   stage: build
+#   variables:
+#     BITCOIN_ONLY: "1"
+#   script:
+#     - cd legacy
+#     - pipenv run script/cibuild
 
 build legacy emu:
   stage: build
@@ -42,12 +42,12 @@ build legacy emu:
     expire_in: 1 day
 
 # TODO: aren't some tests from .travis.yml missing?
-test legacy emu:
-  stage: test
-  dependencies:
-    - build legacy emu
-  variables:
-    EMULATOR: "1"
-  script:
-    - cd legacy
-    - pipenv run script/test
+# test legacy emu:
+#   stage: test
+#   dependencies:
+#     - build legacy emu
+#   variables:
+#     EMULATOR: "1"
+#   script:
+#     - cd legacy
+#     - pipenv run script/test

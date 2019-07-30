@@ -22,20 +22,20 @@ variables:
   # No need for TLS because everything runs on the same machine
   DOCKER_TLS_CERTDIR: ""
 stages:
-  - environment
-  - prebuild
+  # - environment
+  # - prebuild
   - build
-  - test
+  # - test
   - aftertest
 
 before_script:
   - pipenv install
 
 include:
-  - ci/environment.yml
-  - ci/prebuild.yml  # common, style
+  # - ci/environment.yml
+  # - ci/prebuild.yml  # common, style
   - ci/core.yml
   - ci/legacy.yml
   # - ci/python.yml  TODO
-  - ci/crypto.yml
-  - ci/storage.yml
+  # - ci/crypto.yml
+  # - ci/storage.yml
