@@ -20,8 +20,8 @@ class Storage:
     def wipe(self) -> None:
         self.lib.storage_wipe()
 
-    def unlock(self, pin: int) -> bool:
-        return sectrue == self.lib.storage_unlock(c.c_uint32(pin))
+    def unlock(self, pin: int, ext_salt: bytes = None) -> bool:
+        return sectrue == self.lib.storage_unlock(c.c_uint32(pin), ext_salt)
 
     def lock(self) -> None:
         self.lib.storage_lock()
@@ -32,9 +32,15 @@ class Storage:
     def get_pin_rem(self) -> int:
         return self.lib.storage_get_pin_rem()
 
-    def change_pin(self, oldpin: int, newpin: int) -> bool:
+    def change_pin(
+        self,
+        oldpin: int,
+        newpin: int,
+        old_ext_salt: bytes = None,
+        new_ext_salt: bytes = None,
+    ) -> bool:
         return sectrue == self.lib.storage_change_pin(
-            c.c_uint32(oldpin), c.c_uint32(newpin)
+            c.c_uint32(oldpin), c.c_uint32(newpin), old_ext_salt, new_ext_salt
         )
 
     def get(self, key: int) -> bytes:
