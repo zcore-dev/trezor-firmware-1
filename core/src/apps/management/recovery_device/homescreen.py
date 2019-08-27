@@ -1,4 +1,4 @@
-from trezor import loop, utils, wire
+from trezor import loop, strings, utils, wire
 from trezor.crypto.hashlib import sha256
 from trezor.errors import (
     GroupThresholdReachedError,
@@ -223,10 +223,7 @@ async def _request_share_next_screen(ctx: wire.Context, mnemonic_type: int) -> N
             )
             await layout.homescreen_dialog(ctx, content, "Enter share")
         else:
-            if remaining[0] == 1:
-                text = "1 more share"
-            else:
-                text = "%d more shares" % remaining[0]
+            text = strings.format_plural("{count} more {plural}", remaining[0], "share")
             content = layout.RecoveryHomescreen(text, "needed to enter")
             await layout.homescreen_dialog(ctx, content, "Enter share")
     else:

@@ -1,4 +1,4 @@
-from trezor import loop, ui, utils
+from trezor import loop, strings, ui, utils
 from trezor.messages import ButtonRequestType
 from trezor.messages.ButtonAck import ButtonAck
 from trezor.messages.ButtonRequest import ButtonRequest
@@ -65,7 +65,7 @@ def paginate_lines(lines, lines_per_page=5):
 
 
 def format_amount(value):
-    return "%s XMR" % utils.format_amount(value, 12)
+    return "%s XMR" % strings.format_amount(value, 12)
 
 
 def split_address(address):

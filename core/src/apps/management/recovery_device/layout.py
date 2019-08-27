@@ -1,4 +1,4 @@
-from trezor import ui, wire
+from trezor import strings, ui, wire
 from trezor.errors import IdentifierMismatchError, ShareAlreadyAddedError
 from trezor.messages import ButtonRequestType
 from trezor.messages.ButtonAck import ButtonAck
@@ -108,20 +108,22 @@ async def show_remaining_shares(
     for remaining, group in groups:
         if 0 < remaining < 16:
             text = Text("Remaining Shares")
-            if remaining > 1:
-                text.bold("%s more shares starting" % remaining)
-            else:
-                text.bold("%s more share starting" % remaining)
+            text.bold(
+                strings.format_plural(
+                    "{count} more {plural} starting", remaining, "share"
+                )
+            )
             for word in group:
                 text.normal(word)
             pages.append(text)
         elif remaining == 16 and shares_remaining.count(0) < group_threshold:
             text = Text("Remaining Shares")
             groups_remaining = group_threshold - shares_remaining.count(0)
-            if groups_remaining > 1:
-                text.bold("%s more groups starting" % groups_remaining)
-            elif groups_remaining > 0:
-                text.bold("%s more group starting" % groups_remaining)
+            text.bold(
+                strings.format_plural(
+                    "{count} more {plural} starting", groups_remaining, "group"
+                )
+            )
             for word in group:
                 text.normal(word)
             pages.append(text)
