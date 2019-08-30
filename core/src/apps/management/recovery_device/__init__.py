@@ -6,12 +6,10 @@ from trezor.ui.text import Text
 
 from apps.common import storage
 from apps.common.confirm import require_confirm
-from apps.common.sd_salt import request_sd_salt
-from apps.management.change_pin import request_pin_ack, request_pin_confirm
+from apps.management.change_pin import request_pin_and_sd_salt, request_pin_confirm
 from apps.management.recovery_device.homescreen import recovery_process
 
 if False:
-    from typing import Optional
     from trezor.messages.RecoveryDevice import RecoveryDevice
 
 
@@ -36,16 +34,7 @@ async def recovery_device(ctx: wire.Context, msg: RecoveryDevice) -> Success:
 
     # for dry run pin needs to be entered
     if msg.dry_run:
-        salt_auth_key = storage.device.get_sd_salt_auth_key()
-        if salt_auth_key is not None:
-            salt = await request_sd_salt(salt_auth_key)  # type: Optional[bytearray]
-        else:
-            salt = None
-
-        if config.has_pin():
-            curpin = await request_pin_ack(ctx, "Enter PIN", config.get_pin_rem())
-        else:
-            curpin = ""
+        curpin, salt = request_pin_and_sd_salt(ctx, "Enter PIN")
         if not config.check_pin(pin_to_int(curpin), salt):
             raise wire.PinInvalid("PIN invalid")
 

@@ -13,18 +13,20 @@ from apps.common.sd_salt import (
     SD_SALT_LEN_BYTES,
     commit_sd_salt,
     remove_sd_salt,
-    request_sd_salt,
     set_sd_salt,
     stage_sd_salt,
 )
-from apps.common.storage import device
-from apps.management.change_pin import request_pin_ack
+from apps.common.storage import device, is_initialized
+from apps.management.change_pin import request_pin_ack, request_pin_and_sd_salt
 
 if False:
     from trezor.messages.SdSalt import SdSalt
 
 
 async def sd_salt(ctx: wire.Context, msg: SdSalt) -> Success:
+    if not is_initialized():
+        raise wire.ProcessError("Device is not initialized")
+
     if msg.operation == SdSaltOperationType.ENABLE:
         return await sd_salt_enable(ctx, msg)
     elif msg.operation == SdSaltOperationType.DISABLE:
@@ -40,6 +42,7 @@ async def sd_salt_enable(ctx: wire.Context, msg: SdSalt) -> Success:
     if salt_auth_key is not None:
         raise wire.ProcessError("SD card salt already enabled")
 
+    # Confirm that user wants to proceed with the operation.
     await require_confirm_sd_salt(ctx, msg)
 
     # Get the current PIN.
@@ -55,13 +58,13 @@ async def sd_salt_enable(ctx: wire.Context, msg: SdSalt) -> Success:
         :SD_SALT_AUTH_TAG_LEN_BYTES
     ]
     try:
-        await set_sd_salt(salt, salt_tag)
+        await set_sd_salt(ctx, salt, salt_tag)
     except Exception:
         raise wire.ProcessError("Failed to write SD card salt")
 
     if not config.change_pin(pin, pin, None, salt):
         try:
-            await remove_sd_salt()
+            await remove_sd_salt(ctx)
         except Exception:
             pass
         raise wire.PinInvalid("PIN invalid")
@@ -72,33 +75,23 @@ async def sd_salt_enable(ctx: wire.Context, msg: SdSalt) -> Success:
 
 
 async def sd_salt_disable(ctx: wire.Context, msg: SdSalt) -> Success:
-    salt_auth_key = device.get_sd_salt_auth_key()
-    if salt_auth_key is None:
+    if device.get_sd_salt_auth_key() is None:
         raise wire.ProcessError("SD card salt not enabled")
 
     # Confirm that user wants to proceed with the operation.
     await require_confirm_sd_salt(ctx, msg)
 
-    # Get the current salt from the SD card.
-    try:
-        salt = await request_sd_salt(salt_auth_key)
-    except Exception:
-        raise wire.ProcessError("Failed to load SD card salt")
-
-    # Get the current PIN.
-    if config.has_pin():
-        pin = pin_to_int(await request_pin_ack(ctx, "Enter PIN", config.get_pin_rem()))
-    else:
-        pin = pin_to_int("")
+    # Get the current PIN and salt from the SD card.
+    pin, salt = await request_pin_and_sd_salt(ctx, "Enter PIN")
 
     # Check PIN and remove salt.
-    if not config.change_pin(pin, pin, salt, None):
+    if not config.change_pin(pin_to_int(pin), pin_to_int(pin), salt, None):
         raise wire.PinInvalid("PIN invalid")
 
     device.set_sd_salt_auth_key(None)
 
     try:
-        await remove_sd_salt()
+        await remove_sd_salt(ctx)
     except Exception:
         pass
 
@@ -106,24 +99,14 @@ async def sd_salt_disable(ctx: wire.Context, msg: SdSalt) -> Success:
 
 
 async def sd_salt_regenerate(ctx: wire.Context, msg: SdSalt) -> Success:
-    old_salt_auth_key = device.get_sd_salt_auth_key()
-    if old_salt_auth_key is None:
+    if device.get_sd_salt_auth_key() is None:
         raise wire.ProcessError("SD card salt not enabled")
 
     # Confirm that user wants to proceed with the operation.
     await require_confirm_sd_salt(ctx, msg)
 
-    # Get the current salt from the SD card.
-    try:
-        old_salt = await request_sd_salt(old_salt_auth_key)
-    except Exception:
-        raise wire.ProcessError("Failed to load SD card salt")
-
-    # Get the current PIN.
-    if config.has_pin():
-        pin = pin_to_int(await request_pin_ack(ctx, "Enter PIN", config.get_pin_rem()))
-    else:
-        pin = pin_to_int("")
+    # Get the current PIN and salt from the SD card.
+    pin, old_salt = await request_pin_and_sd_salt(ctx, "Enter PIN")
 
     # Check PIN and change salt.
     new_salt = random.bytes(SD_SALT_LEN_BYTES)
@@ -132,19 +115,19 @@ async def sd_salt_regenerate(ctx: wire.Context, msg: SdSalt) -> Success:
         :SD_SALT_AUTH_TAG_LEN_BYTES
     ]
     try:
-        await stage_sd_salt(new_salt, new_salt_tag)
+        await stage_sd_salt(ctx, new_salt, new_salt_tag)
     except Exception:
         raise wire.ProcessError("Failed to write SD card salt")
 
-    if not config.change_pin(pin, pin, old_salt, new_salt):
+    if not config.change_pin(pin_to_int(pin), pin_to_int(pin), old_salt, new_salt):
         raise wire.PinInvalid("PIN invalid")
 
     device.set_sd_salt_auth_key(new_salt_auth_key)
 
     try:
-        await commit_sd_salt()
+        await commit_sd_salt(ctx)
     except Exception:
-        raise wire.ProcessError("Failed to write SD card salt")
+        pass
 
     return Success(message="SD card salt regenerated")
 

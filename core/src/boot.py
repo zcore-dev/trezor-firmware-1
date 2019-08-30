@@ -20,7 +20,9 @@ async def bootscreen() -> None:
                 await lockscreen()
 
             if salt_auth_key is not None:
-                salt = await request_sd_salt(salt_auth_key)  # type: Optional[bytearray]
+                salt = await request_sd_salt(
+                    None, salt_auth_key
+                )  # type: Optional[bytearray]
             else:
                 salt = None
 
