@@ -22,6 +22,9 @@ _SLIP39_ITERATION_EXPONENT = const(0x06)  # int
 _SLIP39_GROUP_COUNT        = const(0x07)  # int
 _SLIP39_GROUP_THRESHOLD    = const(0x08)  # int
 _BACKUP_TYPE               = const(0x09)  # int
+
+_DEFAULT_SLIP39_GROUP_COUNT = 1
+_DEFAULT_SLIP39_GROUP_THRESHOLD = 1
 # fmt: on
 
 if False:
@@ -89,7 +92,7 @@ def set_slip39_group_count(group_count: int) -> None:
 
 
 def get_slip39_group_count() -> Optional[int]:
-    return common._get_uint8(_NAMESPACE, _SLIP39_GROUP_COUNT)
+    return common._get_uint8(_NAMESPACE, _SLIP39_GROUP_COUNT) or _DEFAULT_SLIP39_GROUP_COUNT
 
 
 def set_slip39_group_threshold(group_threshold: int) -> None:
@@ -97,7 +100,7 @@ def set_slip39_group_threshold(group_threshold: int) -> None:
 
 
 def get_slip39_group_threshold() -> Optional[int]:
-    return common._get_uint8(_NAMESPACE, _SLIP39_GROUP_THRESHOLD)
+    return common._get_uint8(_NAMESPACE, _SLIP39_GROUP_THRESHOLD) or _DEFAULT_SLIP39_GROUP_THRESHOLD
 
 
 def set_slip39_remaining_shares(shares_remaining: int, group_index: int = 0) -> None:
