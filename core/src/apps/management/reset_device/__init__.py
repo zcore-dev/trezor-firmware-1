@@ -10,6 +10,7 @@ from trezor.ui.text import Text
 
 from apps.common import storage
 from apps.common.confirm import require_confirm
+from apps.management import backup_types
 from apps.management.change_pin import request_pin_confirm
 from apps.management.reset_device import layout
 
@@ -173,10 +174,11 @@ def _validate_reset_device(msg: ResetDevice) -> None:
         BackupType.Slip39_Advanced,
     ):
         raise wire.ProcessError("Backup type not implemented.")
-    if msg.strength not in (128, 256):
-        if msg.backup_type == BackupType.Slip39_Basic:
+    if backup_types.is_slip39_backup_type(msg.backup_type):
+        if msg.strength not in (128, 256):
             raise wire.ProcessError("Invalid strength (has to be 128 or 256 bits)")
-        elif msg.strength != 192:
+    else:  # BIP-39
+        if msg.strength not in (128, 192, 256):
             raise wire.ProcessError("Invalid strength (has to be 128, 192 or 256 bits)")
     if msg.display_random and (msg.skip_backup or msg.no_backup):
         raise wire.ProcessError("Can't show internal entropy when backup is skipped")
