@@ -204,8 +204,10 @@ def sign_tx(
 
     w3 = web3.Web3()
     if (
-        gas_price is None or gas_limit is None or nonce is None or publish
-    ) and not w3.isConnected():
+        any(x is None for x in (gas_price, gas_limit, nonce))
+        or publish
+        and not w3.isConnected()
+    ):
         click.echo("Failed to connect to Ethereum node.")
         click.echo(
             "If you want to sign offline, make sure you provide --gas-price, "
