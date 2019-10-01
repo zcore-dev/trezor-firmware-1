@@ -225,13 +225,15 @@ def print_result(res, path, verbose, is_json):
 #
 
 
-@cli.command(name="list", help="List connected Trezor devices.")
+@cli.command(name="list", )
 def ls():
+    """List connected Trezor devices."""
     return enumerate_devices()
 
 
-@cli.command(help="Show version of trezorctl/trezorlib.")
+@cli.command()
 def version():
+    """Show version of trezorctl/trezorlib."""
     from trezorlib import __version__ as VERSION
 
     return VERSION
@@ -242,13 +244,14 @@ def version():
 #
 
 
-@cli.command(help="Send ping message.")
+@cli.command()
 @click.argument("message")
 @click.option("-b", "--button-protection", is_flag=True)
 @click.option("-p", "--pin-protection", is_flag=True)
 @click.option("-r", "--passphrase-protection", is_flag=True)
 @click.pass_obj
 def ping(connect, message, button_protection, pin_protection, passphrase_protection):
+    """Send ping message."""
     return connect().ping(
         message,
         button_protection=button_protection,
@@ -257,22 +260,25 @@ def ping(connect, message, button_protection, pin_protection, passphrase_protect
     )
 
 
-@cli.command(help="Clear session (remove cached PIN, passphrase, etc.).")
+@cli.command()
 @click.pass_obj
 def clear_session(connect):
+    """Clear session (remove cached PIN, passphrase, etc.)."""
     return connect().clear_session()
 
 
-@cli.command(help="Get example entropy.")
+@cli.command()
 @click.argument("size", type=int)
 @click.pass_obj
 def get_entropy(connect, size):
+    """Get example entropy."""
     return misc.get_entropy(connect(), size).hex()
 
 
-@cli.command(help="Retrieve device features and settings.")
+@cli.command()
 @click.pass_obj
 def get_features(connect):
+    """Retrieve device features and settings."""
     return connect().features
 
 
@@ -281,10 +287,11 @@ def get_features(connect):
 #
 
 
-@cli.command(help="Set, change or remove PIN.")
+@cli.command()
 @click.option("-r", "--remove", is_flag=True)
 @click.pass_obj
 def change_pin(connect, remove):
+    """Set, change or remove PIN."""
     return device.change_pin(connect(), remove)
 
 
@@ -310,22 +317,25 @@ def sd_protect(connect, operation):
     return device.sd_protect(connect(), operation)
 
 
-@cli.command(help="Enable passphrase.")
+@cli.command()
 @click.pass_obj
 def enable_passphrase(connect):
+    """Enable passphrase."""
     return device.apply_settings(connect(), use_passphrase=True)
 
 
-@cli.command(help="Disable passphrase.")
+@cli.command()
 @click.pass_obj
 def disable_passphrase(connect):
+    """Disable passphrase."""
     return device.apply_settings(connect(), use_passphrase=False)
 
 
-@cli.command(help="Set new device label.")
+@cli.command()
 @click.option("-l", "--label")
 @click.pass_obj
 def set_label(connect, label):
+    """Set new device label."""
     return device.apply_settings(connect(), label=label)
 
 
@@ -357,10 +367,11 @@ def set_display_rotation(connect, rotation):
     return device.apply_settings(connect(), display_rotation=rotation)
 
 
-@cli.command(help="Set auto-lock delay (in seconds).")
+@cli.command()
 @click.argument("delay", type=str)
 @click.pass_obj
 def set_auto_lock_delay(connect, delay):
+    """Set auto-lock delay (in seconds)."""
     value, unit = delay[:-1], delay[-1:]
     units = {"s": 1, "m": 60, "h": 3600}
     if unit in units:
@@ -370,10 +381,11 @@ def set_auto_lock_delay(connect, delay):
     return device.apply_settings(connect(), auto_lock_delay_ms=int(seconds * 1000))
 
 
-@cli.command(help="Set device flags.")
+@cli.command()
 @click.argument("flags")
 @click.pass_obj
 def set_flags(connect, flags):
+    """Set device flags."""
     flags = flags.lower()
     if flags.startswith("0b"):
         flags = int(flags, 2)
@@ -384,10 +396,11 @@ def set_flags(connect, flags):
     return device.apply_flags(connect(), flags=flags)
 
 
-@cli.command(help="Set new homescreen.")
+@cli.command()
 @click.option("-f", "--filename", default=None)
 @click.pass_obj
 def set_homescreen(connect, filename):
+    """Set new homescreen."""
     if filename is None:
         img = b"\x00"
     elif filename.endswith(".toif"):
@@ -417,14 +430,15 @@ def set_homescreen(connect, filename):
     return device.apply_settings(connect(), homescreen=img)
 
 
-@cli.command(help="Set U2F counter.")
+@cli.command()
 @click.argument("counter", type=int)
 @click.pass_obj
 def set_u2f_counter(connect, counter):
+    """Set U2F counter."""
     return device.set_u2f_counter(connect(), counter)
 
 
-@cli.command(help="Reset device to factory defaults and remove all private data.")
+@cli.command()
 @click.option(
     "-b",
     "--bootloader",
@@ -433,6 +447,7 @@ def set_u2f_counter(connect, counter):
 )
 @click.pass_obj
 def wipe_device(connect, bootloader):
+    """Reset device to factory defaults and remove all private data."""
     client = connect()
     if bootloader:
         if not client.features.bootloader_mode:
@@ -460,7 +475,7 @@ def wipe_device(connect, bootloader):
         sys.exit(3)
 
 
-@cli.command(help="Load custom configuration to the device.")
+@cli.command()
 @click.option("-m", "--mnemonic", multiple=True)
 @click.option("-e", "--expand", is_flag=True)
 @click.option("-x", "--xprv")
@@ -481,6 +496,7 @@ def load_device(
     ignore_checksum,
     slip0014,
 ):
+    """Load custom configuration to the device."""
     n_args = sum(bool(a) for a in (mnemonic, xprv, slip0014))
     if n_args == 0:
         raise click.ClickException("Please provide a mnemonic or xprv")
@@ -510,7 +526,7 @@ def load_device(
     )
 
 
-@cli.command(help="Start safe recovery workflow.")
+@cli.command()
 @click.option("-w", "--words", type=click.Choice(["12", "18", "24"]), default="24")
 @click.option("-e", "--expand", is_flag=True)
 @click.option("-p", "--pin-protection", is_flag=True)
@@ -531,6 +547,7 @@ def recovery_device(
     rec_type,
     dry_run,
 ):
+    """Start safe recovery workflow."""
     if rec_type == proto.RecoveryDeviceType.ScrambledWords:
         input_callback = ui.mnemonic_words(expand)
     else:
@@ -550,7 +567,7 @@ def recovery_device(
     )
 
 
-@cli.command(help="Perform device setup and generate new seed.")
+@cli.command()
 @click.option("-e", "--show-entropy", is_flag=True)
 @click.option("-t", "--strength", type=click.Choice(["128", "192", "256"]))
 @click.option("-r", "--passphrase-protection", is_flag=True)
@@ -573,6 +590,7 @@ def reset_device(
     no_backup,
     backup_type,
 ):
+    """Perform device setup and generate new seed."""
     if strength:
         strength = int(strength)
 
@@ -604,9 +622,10 @@ def reset_device(
     )
 
 
-@cli.command(help="Perform device seed backup.")
+@cli.command()
 @click.pass_obj
 def backup_device(connect):
+    """Perform device seed backup."""
     return device.backup(connect())
 
 
@@ -866,9 +885,10 @@ def firmware_update(
             sys.exit(3)
 
 
-@cli.command(help="Perform a self-test.")
+@cli.command()
 @click.pass_obj
 def self_test(connect):
+    """Perform a self-test."""
     return debuglink.self_test(connect())
 
 
@@ -889,7 +909,7 @@ def usb_reset():
 #
 
 
-@cli.command(help="Get address for specified path.")
+@cli.command()
 @click.option("-c", "--coin", default="Bitcoin")
 @click.option(
     "-n", "--address", required=True, help="BIP-32 path, e.g. m/44'/0'/0'/0/0"
@@ -898,6 +918,7 @@ def usb_reset():
 @click.option("-d", "--show-display", is_flag=True)
 @click.pass_obj
 def get_address(connect, coin, address, script_type, show_display):
+    """Get address for specified path."""
     client = connect()
     address_n = tools.parse_path(address)
     return btc.get_address(
@@ -905,7 +926,7 @@ def get_address(connect, coin, address, script_type, show_display):
     )
 
 
-@cli.command(help="Get public node of given path.")
+@cli.command()
 @click.option("-c", "--coin", default="Bitcoin")
 @click.option("-n", "--address", required=True, help="BIP-32 path, e.g. m/44'/0'/0'")
 @click.option("-e", "--curve")
@@ -913,6 +934,7 @@ def get_address(connect, coin, address, script_type, show_display):
 @click.option("-d", "--show-display", is_flag=True)
 @click.pass_obj
 def get_public_node(connect, coin, address, curve, script_type, show_display):
+    """Get public node of given path."""
     client = connect()
     address_n = tools.parse_path(address)
     result = btc.get_public_node(
@@ -940,7 +962,7 @@ def get_public_node(connect, coin, address, curve, script_type, show_display):
 #
 
 
-@cli.command(help="Sign transaction.")
+@cli.command()
 @click.option("-c", "--coin", default="Bitcoin")
 @click.argument("json_file", type=click.File(), required=False)
 @click.pass_obj
@@ -990,6 +1012,7 @@ def sign_tx(connect, coin, json_file):
         sys.exit(1)
 
     def default_script_type(address_n):
+        """Sign transaction."""
         script_type = "address"
 
         if address_n is None:
@@ -1125,7 +1148,7 @@ def sign_tx(connect, coin, json_file):
 #
 
 
-@cli.command(help="Sign message using address of given path.")
+@cli.command()
 @click.option("-c", "--coin", default="Bitcoin")
 @click.option(
     "-n", "--address", required=True, help="BIP-32 path, e.g. m/44'/0'/0'/0/0"
@@ -1139,6 +1162,7 @@ def sign_tx(connect, coin, json_file):
 @click.argument("message")
 @click.pass_obj
 def sign_message(connect, coin, address, message, script_type):
+    """Sign message using address of given path."""
     client = connect()
     address_n = tools.parse_path(address)
     typemap = {
@@ -1155,36 +1179,39 @@ def sign_message(connect, coin, address, message, script_type):
     }
 
 
-@cli.command(help="Verify message.")
+@cli.command()
 @click.option("-c", "--coin", default="Bitcoin")
 @click.argument("address")
 @click.argument("signature")
 @click.argument("message")
 @click.pass_obj
 def verify_message(connect, coin, address, signature, message):
+    """Verify message."""
     signature = base64.b64decode(signature)
     return btc.verify_message(connect(), coin, address, signature, message)
 
 
 
-@cli.command(help="Encrypt value by given key and path.")
+@cli.command()
 @click.option("-n", "--address", required=True, help="BIP-32 path, e.g. m/10016'/0")
 @click.argument("key")
 @click.argument("value")
 @click.pass_obj
 def encrypt_keyvalue(connect, address, key, value):
+    """Encrypt value by given key and path."""
     client = connect()
     address_n = tools.parse_path(address)
     res = misc.encrypt_keyvalue(client, address_n, key, value.encode())
     return res.hex()
 
 
-@cli.command(help="Decrypt value by given key and path.")
+@cli.command()
 @click.option("-n", "--address", required=True, help="BIP-32 path, e.g. m/10016'/0")
 @click.argument("key")
 @click.argument("value")
 @click.pass_obj
 def decrypt_keyvalue(connect, address, key, value):
+    """Decrypt value by given key and path."""
     client = connect()
     address_n = tools.parse_path(address)
     return misc.decrypt_keyvalue(client, address_n, key, bytes.fromhex(value))

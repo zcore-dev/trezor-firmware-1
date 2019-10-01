@@ -101,21 +101,23 @@ def cli():
     """Ethereum commands."""
 
 
-@cli.command(help="Get Ethereum address in hex encoding.")
+@cli.command()
 @click.option("-n", "--address", required=True, help=PATH_HELP)
 @click.option("-d", "--show-display", is_flag=True)
 @click.pass_obj
 def get_address(connect, address, show_display):
+    """Get Ethereum address in hex encoding."""
     client = connect()
     address_n = tools.parse_path(address)
     return ethereum.get_address(client, address_n, show_display)
 
 
-@cli.command(help="Get Ethereum public node of given path.")
+@cli.command()
 @click.option("-n", "--address", required=True, help=PATH_HELP)
 @click.option("-d", "--show-display", is_flag=True)
 @click.pass_obj
 def get_public_node(connect, address, show_display):
+    """Get Ethereum public node of given path."""
     client = connect()
     address_n = tools.parse_path(address)
     result = ethereum.get_public_node(client, address_n, show_display=show_display)
@@ -274,11 +276,12 @@ def sign_tx(
         return "Signed raw transaction:\n%s" % tx_hex
 
 
-@cli.command(help="Sign message with Ethereum address.")
+@cli.command()
 @click.option("-n", "--address", required=True, help=PATH_HELP)
 @click.argument("message")
 @click.pass_obj
 def sign_message(connect, address, message):
+    """Sign message with Ethereum address."""
     client = connect()
     address_n = tools.parse_path(address)
     ret = ethereum.sign_message(client, address_n, message)
@@ -290,12 +293,13 @@ def sign_message(connect, address, message):
     return output
 
 
-@cli.command(help="Verify message signed with Ethereum address.")
+@cli.command()
 @click.argument("address")
 @click.argument("signature")
 @click.argument("message")
 @click.pass_obj
 def verify_message(connect, address, signature, message):
+    """Verify message signed with Ethereum address."""
     signature = _decode_hex(signature)
     return ethereum.verify_message(connect(), address, signature, message)
 

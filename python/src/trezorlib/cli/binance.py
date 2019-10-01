@@ -36,7 +36,7 @@ def get_public_key(connect, address, show_display):
     return binance.get_public_key(client, address_n, show_display).hex()
 
 
-@cli.command(help="Sign Binance transaction")
+@cli.command()
 @click.option("-n", "--address", required=True, help=PATH_HELP)
 @click.option(
     "-f",
@@ -47,6 +47,7 @@ def get_public_key(connect, address, show_display):
 )
 @click.pass_obj
 def sign_tx(connect, address, file):
+    """Sign Binance transaction"""
     client = connect()
     address_n = tools.parse_path(address)
 
