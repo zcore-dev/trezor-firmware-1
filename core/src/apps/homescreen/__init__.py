@@ -22,7 +22,7 @@ def get_features() -> Features:
     f.major_version = utils.VERSION_MAJOR
     f.minor_version = utils.VERSION_MINOR
     f.patch_version = utils.VERSION_PATCH
-    f.revision = utils.GITREV
+    f.revision = utils.GITREV.encode()
     f.model = utils.MODEL
     f.device_id = storage.device.get_device_id()
     f.label = storage.device.get_label()

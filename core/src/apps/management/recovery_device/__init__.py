@@ -73,7 +73,7 @@ def _check_state(msg: RecoveryDevice) -> None:
         )
 
 
-async def _continue_dialog(ctx: wire.Context, msg: RecoveryDevice):
+async def _continue_dialog(ctx: wire.Context, msg: RecoveryDevice) -> None:
     if not msg.dry_run:
         text = Text("Recovery mode", ui.ICON_RECOVERY, new_lines=False)
         text.bold("Do you really want to")

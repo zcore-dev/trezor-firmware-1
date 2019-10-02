@@ -54,6 +54,7 @@ async def _continue_recovery_process(ctx: wire.Context) -> Success:
     is_first_step = backup_type is None
 
     if not is_first_step:
+        assert word_count is not None
         # If we continue recovery, show starting screen with word count immediately.
         await _request_share_first_screen(ctx, word_count)
 
@@ -64,6 +65,7 @@ async def _continue_recovery_process(ctx: wire.Context) -> Success:
             word_count = await _request_word_count(ctx, dry_run)
             # ...and only then show the starting screen with word count.
             await _request_share_first_screen(ctx, word_count)
+        assert word_count is not None
 
         # ask for mnemonic words one by one
         words = await layout.request_mnemonic(ctx, word_count, backup_type)
@@ -162,12 +164,13 @@ async def _process_words(
 
     share = None
     if not is_slip39:  # BIP-39
-        secret = recover.process_bip39(words)
+        secret = recover.process_bip39(words)  # type: Optional[bytes]
     else:
         secret, share = recover.process_slip39(words)
 
     backup_type = backup_types.infer_backup_type(is_slip39, share)
-    if secret is None:
+    if secret is None:  # SLIP-39
+        assert share is not None
         if share.group_count and share.group_count > 1:
             await layout.show_group_share_success(ctx, share.index, share.group_index)
         await _request_share_next_screen(ctx)
@@ -218,6 +221,8 @@ async def _show_remaining_groups_and_shares(ctx: wire.Context) -> None:
     Show info dialog for Slip39 Advanced - what shares are to be entered.
     """
     shares_remaining = storage.recovery.fetch_slip39_remaining_shares()
+    # should be stored at this point
+    assert shares_remaining
 
     groups = set()
     first_entered_index = -1
@@ -239,6 +244,7 @@ async def _show_remaining_groups_and_shares(ctx: wire.Context) -> None:
             ].split(" ")[0:2]
             groups.add((remaining, tuple(identifier)))
 
+    assert share  # share needs to be set
     return await layout.show_remaining_shares(
         ctx, groups, shares_remaining, share.group_threshold
     )
