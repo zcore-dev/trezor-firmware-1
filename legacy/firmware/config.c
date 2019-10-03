@@ -517,6 +517,14 @@ void config_loadDevice(const LoadDevice *msg) {
   if (msg->has_u2f_counter) {
     config_setU2FCounter(msg->u2f_counter);
   }
+
+  if (msg->has_skip_backup) {
+    config_setUnfinishedBackup(msg->skip_backup);
+  }
+
+  if (msg->has_no_backup && msg->no_backup) {
+    config_setNoBackup();
+  }
 }
 
 void config_setLabel(const char *label) {
