@@ -29,7 +29,7 @@ if __debug__:
         LOG_MEMORY = 0
 
 if False:
-    from typing import Iterable, Iterator, Protocol, List, TypeVar
+    from typing import Iterable, Iterator, Protocol, TypeVar, Sequence
 
 
 def unimport_begin() -> Iterable[str]:
@@ -66,10 +66,10 @@ def ensure(cond: bool, msg: str = None) -> None:
 
 
 if False:
-    Chunked = TypeVar("Chunked")
+    Chunk = TypeVar("Chunk")
 
 
-def chunks(items: List[Chunked], size: int) -> Iterator[List[Chunked]]:
+def chunks(items: Sequence[Chunk], size: int) -> Iterator[Sequence[Chunk]]:
     for i in range(0, len(items), size):
         yield items[i : i + size]
 

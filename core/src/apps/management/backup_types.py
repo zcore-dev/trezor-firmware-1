@@ -28,13 +28,10 @@ def is_slip39_backup_type(backup_type: EnumTypeBackupType) -> bool:
 
 def infer_backup_type(is_slip39: bool, share: Share = None) -> EnumTypeBackupType:
     if not is_slip39:  # BIP-39
-        # TODO: unsure
-        return BackupType.Bip39  # type: ignore
+        return BackupType.Bip39
     elif not share or share.group_count < 1:  # invalid parameters
         raise RuntimeError
     elif share.group_count == 1:
-        # TODO: unsure
-        return BackupType.Slip39_Basic  # type: ignore
+        return BackupType.Slip39_Basic
     else:
-        # TODO: unsure
-        return BackupType.Slip39_Advanced  # type: ignore
+        return BackupType.Slip39_Advanced
