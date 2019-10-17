@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeNEMImportanceTransferMode = Literal[1, 2]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeNEMImportanceTransferMode = None  # type: ignore
+        pass
 
 
 class NEMImportanceTransfer(p.MessageType):

@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeBackupType = Literal[0, 1, 2]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeBackupType = None  # type: ignore
+        pass
 
 
 class ResetDevice(p.MessageType):

@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypePinMatrixRequestType = Literal[1, 2, 3]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypePinMatrixRequestType = None  # type: ignore
+        pass
 
 
 class PinMatrixRequest(p.MessageType):

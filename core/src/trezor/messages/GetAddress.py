@@ -10,8 +10,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeInputScriptType = Literal[0, 1, 2, 3, 4]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeInputScriptType = None  # type: ignore
+        pass
 
 
 class GetAddress(p.MessageType):

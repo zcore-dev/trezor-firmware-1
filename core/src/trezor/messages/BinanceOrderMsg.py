@@ -10,10 +10,7 @@ if __debug__:
         EnumTypeBinanceOrderSide = Literal[0, 1, 2]
         EnumTypeBinanceTimeInForce = Literal[0, 1, 2, 3]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeBinanceOrderType = None  # type: ignore
-        EnumTypeBinanceOrderSide = None  # type: ignore
-        EnumTypeBinanceTimeInForce = None  # type: ignore
+        pass
 
 
 class BinanceOrderMsg(p.MessageType):

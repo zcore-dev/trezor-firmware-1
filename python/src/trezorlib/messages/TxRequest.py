@@ -11,8 +11,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeRequestType = Literal[0, 1, 2, 3, 4]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeRequestType = None  # type: ignore
+        pass
 
 
 class TxRequest(p.MessageType):

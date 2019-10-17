@@ -7,7 +7,7 @@ if __debug__:
         from typing import Dict, List, Optional
         from typing_extensions import Literal  # noqa: F401
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
+        pass
 
 
 class LiskVerifyMessage(p.MessageType):

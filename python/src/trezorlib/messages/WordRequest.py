@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeWordRequestType = Literal[0, 1, 2]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeWordRequestType = None  # type: ignore
+        pass
 
 
 class WordRequest(p.MessageType):

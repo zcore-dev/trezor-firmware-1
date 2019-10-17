@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeNEMMosaicLevy = Literal[1, 2]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeNEMMosaicLevy = None  # type: ignore
+        pass
 
 
 class NEMMosaicDefinition(p.MessageType):

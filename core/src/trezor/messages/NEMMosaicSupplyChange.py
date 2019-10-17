@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeNEMSupplyChangeType = Literal[1, 2]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeNEMSupplyChangeType = None  # type: ignore
+        pass
 
 
 class NEMMosaicSupplyChange(p.MessageType):

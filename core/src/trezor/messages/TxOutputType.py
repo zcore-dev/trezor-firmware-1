@@ -10,8 +10,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeOutputScriptType = Literal[0, 1, 2, 3, 4, 5]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeOutputScriptType = None  # type: ignore
+        pass
 
 
 class TxOutputType(p.MessageType):

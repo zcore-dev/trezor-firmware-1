@@ -8,8 +8,7 @@ if __debug__:
         from typing_extensions import Literal  # noqa: F401
         EnumTypeTezosBallotType = Literal[0, 1, 2]
     except ImportError:
-        Dict, List, Optional = None, None, None  # type: ignore
-        EnumTypeTezosBallotType = None  # type: ignore
+        pass
 
 
 class TezosBallotOp(p.MessageType):
