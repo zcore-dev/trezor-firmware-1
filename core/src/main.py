@@ -12,7 +12,7 @@ from trezor import utils
 usb.bus.open()
 
 # switch into unprivileged mode, as we don't need the extra permissions anymore
-utils.set_mode_unprivileged()
+# utils.set_mode_unprivileged()
 
 
 def _boot_recovery() -> None:
