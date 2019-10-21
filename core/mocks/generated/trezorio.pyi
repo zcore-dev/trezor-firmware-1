@@ -54,14 +54,10 @@ class FatFSFile:
 
 
 # extmod/modtrezorio/modtrezorio-fatfs.h
-class FatFSDir(Iterable[Tuple[int, str, str]]):
+class FatFSDir(Iterator[Tuple[int, str, str]]):
     """
     Class encapsulating directory
     """
-
-    def __iter__(self) -> Iterator[Tuple[int, str, str]]:
-        pass
-    # TODO: unsure
 
     def __next__(self) -> Tuple[int, str, str]:
         """

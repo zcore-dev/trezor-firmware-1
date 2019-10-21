@@ -18,13 +18,13 @@ from apps.management import backup_types
 from apps.management.recovery_device import layout
 
 if False:
-    from typing import Optional, Tuple
+    from typing import Optional, Tuple, cast
     from trezor.messages.ResetDevice import EnumTypeBackupType
 
 
 async def recovery_homescreen() -> None:
     # recovery process does not communicate on the wire
-    ctx = wire.DummyContext()
+    ctx = cast(wire.Context, wire.DummyContext())  # TODO
     try:
         await recovery_process(ctx)
     finally:
@@ -88,6 +88,7 @@ async def _continue_recovery_process(ctx: wire.Context) -> Success:
         except MnemonicError:
             await layout.show_invalid_mnemonic(ctx, word_count)
 
+    assert backup_type is not None
     if dry_run:
         result = await _finish_recovery_dry_run(ctx, secret, backup_type)
     else:

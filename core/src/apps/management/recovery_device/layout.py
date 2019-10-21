@@ -160,7 +160,7 @@ async def show_remaining_shares(
     shares_remaining: List[int],
     group_threshold: int,
 ) -> None:
-    pages = []
+    pages = []  # type: List[ui.Component]
     for remaining, group in groups:
         if 0 < remaining < MAX_SHARE_COUNT:
             text = Text("Remaining Shares")

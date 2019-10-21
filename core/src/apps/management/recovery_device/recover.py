@@ -9,7 +9,7 @@ from apps.management import backup_types
 
 if False:
     from trezor.messages.ResetDevice import EnumTypeBackupType
-    from typing import Optional, Tuple, List
+    from typing import Optional, Tuple, List, Union
 
 
 class RecoveryAborted(Exception):
@@ -95,7 +95,11 @@ def process_slip39(words: str) -> Tuple[Optional[bytes], slip39.Share]:
     return secret, share
 
 
-def load_slip39_state() -> Tuple[Optional[int], Optional[EnumTypeBackupType]]:
+if False:
+    Slip39State = Union[Tuple[int, EnumTypeBackupType], Tuple[None, None]]
+
+
+def load_slip39_state() -> Slip39State:
     previous_mnemonics = fetch_previous_mnemonics()
     if not previous_mnemonics:
         return None, None
