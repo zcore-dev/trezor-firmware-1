@@ -6,7 +6,7 @@ from .MultisigRedeemScriptType import MultisigRedeemScriptType
 
 if __debug__:
     try:
-        from typing import Dict, List, Optional
+        from typing import Dict, List  # noqa: F401
         from typing_extensions import Literal  # noqa: F401
         EnumTypeInputScriptType = Literal[0, 1, 2, 3, 4]
     except ImportError:

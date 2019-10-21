@@ -2,12 +2,8 @@
 # fmt: off
 from trezor import utils
 
-
-if __debug__:
-    try:
-        from typing_extensions import Literal
-    except ImportError:
-        pass
+if False:
+    from typing_extensions import Literal
 
 Bitcoin = 1  # type: Literal[1]
 if not utils.BITCOIN_ONLY:

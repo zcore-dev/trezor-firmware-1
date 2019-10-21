@@ -279,7 +279,7 @@ class Descriptor:
         yield ""
         yield "if __debug__:"
         yield "    try:"
-        yield "        from typing import Dict, List, Optional"
+        yield "        from typing import Dict, List  # noqa: F401"
         yield "        from typing_extensions import Literal  # noqa: F401"
 
         all_enums = [field for field in fields if field.type_name in self.enum_types]
@@ -290,9 +290,6 @@ class Descriptor:
 
         yield "    except ImportError:"
         yield "        pass"
-        # yield "        Dict, List, Optional = None, None, None"
-        # for field in all_enums:
-        #     yield "        {} = None".format(field.py_inner_type)
 
         yield ""
         yield ""
@@ -314,12 +311,8 @@ class Descriptor:
         logging.debug("Processing enum {}".format(enum.name))
 
         # file header
-        yield ""
-        yield "if __debug__:"
-        yield "    try:"
-        yield "        from typing_extensions import Literal"
-        yield "    except ImportError:"
-        yield "        pass"
+        yield "if False:"
+        yield "    from typing_extensions import Literal"
         yield ""
 
         for value in enum.value:
