@@ -3,13 +3,13 @@ from trezor.messages import ButtonRequestType
 from trezor.messages.ButtonAck import ButtonAck
 from trezor.messages.ButtonRequest import ButtonRequest
 from trezor.ui.confirm import CONFIRMED, INFO, Confirm, HoldToConfirm, InfoConfirm
-from trezor.ui.scroll import Paginated
 
 if __debug__:
     from apps.debug import confirm_signal
+    from trezor.ui.scroll import Paginated
 
 if False:
-    from typing import Any, Callable, Union, Optional
+    from typing import Any, Callable, Optional
     from trezor import ui
     from trezor.ui.confirm import ButtonContent, ButtonStyleType
     from trezor.ui.loader import LoaderStyleType
@@ -28,7 +28,11 @@ async def confirm(
 ) -> bool:
     await ctx.call(ButtonRequest(code=code), ButtonAck)
 
-    if isinstance(content, Paginated):  # TODO: unsure: do I need to omit the import?
+    if content.__class__.__name__ == "Paginated":
+        # The following works because asserts are omitted in non-debug builds.
+        # IOW if the assert runs, that means __debug__ is True and Paginated is imported
+        assert isinstance(content, Paginated)
+
         content.pages[-1] = Confirm(
             content.pages[-1],
             confirm,
@@ -37,7 +41,7 @@ async def confirm(
             cancel_style,
             major_confirm,
         )
-        dialog = content  # type: Union[Paginated, Confirm]
+        dialog = content  # type: ui.Layout
     else:
         dialog = Confirm(
             content, confirm, confirm_style, cancel, cancel_style, major_confirm
@@ -90,11 +94,15 @@ async def hold_to_confirm(
 ) -> bool:
     await ctx.call(ButtonRequest(code=code), ButtonAck)
 
-    if isinstance(content, Paginated):  # TODO: unsure: do I need to omit the import?
+    if content.__class__.__name__ == "Paginated":
+        # The following works because asserts are omitted in non-debug builds.
+        # IOW if the assert runs, that means __debug__ is True and Paginated is imported
+        assert isinstance(content, Paginated)
+
         content.pages[-1] = HoldToConfirm(
             content.pages[-1], confirm, confirm_style, loader_style
         )
-        dialog = content  # type: Union[Paginated, HoldToConfirm]
+        dialog = content  # type: ui.Layout
     else:
         dialog = HoldToConfirm(content, confirm, confirm_style, loader_style)
 
