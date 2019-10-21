@@ -355,8 +355,7 @@ async def handle_session(iface: WireInterface, session_id: int) -> None:
                         # against the layout that is inside.
                         # TODO: this is very hacky and complects wire with the ui
                         if workflow.default_task is not None:
-                            # TODO: unsure
-                            await ui.wait_until_layout_is_running()  # type: ignore
+                            await ui.wait_until_layout_is_running()
 
             if res_msg is not None:
                 # Either the workflow returned a response, or we created one.

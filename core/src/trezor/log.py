@@ -63,7 +63,6 @@ def exception(name: str, exc: BaseException) -> None:
     # we also need to instruct mypy to ignore the missing argument
     # in ui.Result exception
     if exc.__class__.__name__ == "Result":
-        # TODO: unsure
         _log(
             name,
             DEBUG,

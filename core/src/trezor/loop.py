@@ -383,7 +383,7 @@ class chan:
         self.putters = []  # type: List[Tuple[Optional[Task], Any]]
         self.takers = []  # type: List[Task]
 
-    def put(self, value: Any) -> Any:  # TODO: unsure
+    def put(self, value: Any) -> Awaitable[None]:  # type: ignore
         put = chan.Put(self, value)
         try:
             return (yield put)
@@ -393,7 +393,7 @@ class chan:
                 self.putters.remove(entry)
             raise
 
-    def take(self) -> Any:  # TODO: unsure
+    def take(self) -> Awaitable[Any]:  # type: ignore
         take = chan.Take(self)
         try:
             return (yield take)
