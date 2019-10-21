@@ -57,7 +57,7 @@ typing = "*"
 
 # storage
 cryptography = "*"
-hypothesis = "*"
+hypothesis = "==4.38.1"
 
 [dev-packages]
 scan-build = "*"
