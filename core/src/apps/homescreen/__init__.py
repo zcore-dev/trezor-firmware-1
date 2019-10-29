@@ -66,6 +66,7 @@ def get_features() -> Features:
         ]
     f.sd_card_present = io.SDCard().present()
     f.sd_protection = storage.device.get_sd_salt_auth_key() is not None
+    f.wipe_code_protection = config.has_wipe_code()
     return f
 
 
