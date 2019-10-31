@@ -41,6 +41,7 @@ class Keychain:
     """
 
     def __init__(self, seed: bytes, namespaces: list):
+        print("keychain init")
         self.seed = seed
         self.namespaces = namespaces
         self.roots = [None] * len(
@@ -48,6 +49,7 @@ class Keychain:
         )  # type: List[Union[bip32.HDNode, Slip21Node, None]]
 
     def __del__(self) -> None:
+        print("keychain del")
         for root in self.roots:
             if root is not None and hasattr(root, "__del__"):
                 root.__del__()
@@ -118,7 +120,11 @@ async def get_keychain(ctx: wire.Context, namespaces: list) -> Keychain:
             cache.set_passphrase(passphrase)
         seed = mnemonic.get_seed(passphrase)
         cache.set_seed(seed)
-    keychain = Keychain(seed, namespaces)
+        keychain = Keychain(seed, namespaces)
+        cache.set_keychain(keychain)
+    else:
+        keychain = cache.get_keychain()
+    assert keychain is not None
     return keychain
 
 

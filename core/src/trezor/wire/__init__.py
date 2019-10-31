@@ -452,7 +452,9 @@ def wrap_keychain_workflow(handler: Handler, namespace: List) -> Handler:
             return await handler(ctx, req, keychain)
         finally:
             # Be hygienic and wipe the keys from memory.
-            keychain.__del__()
+            # print(keychain.__dict__)
+            # keychain.__del__()
+            pass
 
     return keychain_workflow
 
